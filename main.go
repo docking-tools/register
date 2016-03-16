@@ -7,7 +7,9 @@ import(
     "log"
     "os"
     "strings"
-    dockerapi "github.com/fsouza/go-dockerclient"
+    doc "github.com/docking-tools/register/docker"  
+    template "github.com/docking-tools/register/template"  
+
 )
 
 var hostIp = flag.String("ip", "", "Ip for ports mapped to the host")
@@ -21,7 +23,7 @@ func assert(err error) {
 func main () {
    
    log.Printf("Starting register ...")
-   
+  
    flag.Usage= func () {
        fmt.Fprintf(os.Stderr, "Usage of .....", os.Args[0])
        // @TODO create Usage helper
@@ -44,31 +46,15 @@ func main () {
    if *hostIp != "" {
        log.Println("Forcing host IP to ", *hostIp)
    }
+
+ 
    
-   dockerHost:= os.Getenv("DOCKER_HOST")
-   if dockerHost == "" {
-        os.Setenv("DOCKER_HOST", "unix:///tmp/docker.sock")
-   }
-   docker, err := dockerapi.NewClientFromEnv()
+   client, err:= template.NewTemplate(flag.Arg(0))
    assert(err)
+   docker, err:= doc.New(client) 
    
-   events:= make(chan *dockerapi.APIEvents)
-   assert(docker.AddEventListener(events))
-   log.Println("Listening for Docker events ...")
-   
-   quit := make(chan struct{})
-   
-   // Process Docker events
-   for msg:= range events {
-       log.Printf("New event received %v", msg)
-       switch msg.Status {
-           default :
-                
-           case "start":
-                log.Printf("Start id: %v from: %v", msg.ID, msg.From)
-       }
-   }
-   
-   close(quit)
-   log.Fatal("Docker event loop closed")
+   assert(err)
+
+   docker.Start()	
 }
+
