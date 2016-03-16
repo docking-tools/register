@@ -28,7 +28,24 @@ func NewTemplate(uri string) (api.RegistryAdapter, error) {
         return nil, err
     }
 
-	// Find all environment variables that contain ETCD_ and turn them into templates
+    templates:= getTemplates()
+	
+	if len(templates)==0 {
+	    return nil, errors.New("No template found.")
+	}
+	return &TemplateRegistry{templates: templates, url: u.String()}, nil
+}
+
+func (r *TemplateRegistry) Size() int {
+    return len(r.templates)
+}
+
+func (r *TemplateRegistry) Ping() error {
+    return nil
+}
+
+func getTemplates() map[string][]*template.Template {
+    	// Find all environment variables that contain ETCD_ and turn them into templates
 	templates := make(map[string][]*template.Template)
 	
 	for _, env := range os.Environ() {
@@ -44,19 +61,20 @@ func NewTemplate(uri string) (api.RegistryAdapter, error) {
 	        templates[action] = append(templates[action], template.Must(template.New("etcd template").Parse(text)))
 	    }
 	}
-	
-	if len(templates)==0 {
-	    return nil, errors.New("No template found.")
-	}
-	return &TemplateRegistry{templates: templates, url: u.String()}, nil
+	return templates
 }
-
-func (r *TemplateRegistry) Size() int {
-    return len(r.templates)
-}
-
-func (r *TemplateRegistry) Ping() error {
-    return nil
+func executeTemplates(templates map[string][]*template.Template, key string, survey interface{}) []string {
+        t, ok :=templates[key]
+        var values []string
+    if ok {
+        values = make([]string, len(t))
+        for index, templ :=  range t {
+            var doc bytes.Buffer 
+            templ.Execute(&doc, survey) 
+             values[index] = doc.String() 
+        }
+    }
+    return values
 }
 
 func (r *TemplateRegistry) Register(service *api.Service) error {
