@@ -61,23 +61,16 @@ func (doc * DockerRegistry) Start() {
        log.Printf("New event received %v", msg)
 
   
-       
-       
-       switch msg.Status {
-           default :
-                
-           case "start":
-                log.Printf("Start id: %v from: %v", msg.ID, msg.From)
-                doc.createService(msg.ID)
-       }
-   }
+       log.Printf("%v id: %v from: %v", msg.Status, msg.ID, msg.From)
+       doc.createService(msg.Status, msg.ID)
+    }
       close(quit)
    log.Fatal("Docker event loop closed")
 }
 
 
 
-func (doc *DockerRegistry) createService(containerId string) {
+func (doc *DockerRegistry) createService(status string, containerId string) {
    container, err:= doc.docker.InspectContainer(containerId)
    	if err != nil {
 		log.Println("unable to inspect container:", containerId[:12], err)
@@ -106,13 +99,12 @@ func (doc *DockerRegistry) createService(containerId string) {
 				log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort)
 			continue
 		}
-		err := doc.registry.Register(service)
+		err := doc.registry.RunTemplate(strings.ToUpper(status), service)
 		if err != nil {
-			log.Println("register failed:", service, err)
+			log.Println("RunTemplate failed:", service, err)
 			continue
 		}
 //		doc.services[container.ID] = append(b.services[container.ID], service)
-		log.Println("added:", container.ID[:12], service.ID)
     }
 }
 

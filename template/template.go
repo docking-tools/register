@@ -77,9 +77,9 @@ func executeTemplates(templates map[string][]*template.Template, key string, sur
     return values
 }
 
-func (r *TemplateRegistry) Register(service *api.Service) error {
-    log.Println("start register for service %v", service)
-    toSet, err := r.executeTemplates("START", service)
+func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) error {
+    log.Println("%v register for service %v", status, service)
+    toSet, err := r.executeTemplates(status, service)
     
     if err != nil {
 		return err
@@ -88,7 +88,12 @@ func (r *TemplateRegistry) Register(service *api.Service) error {
 
 	for key, value := range toSet {
 	    client := &http.Client{}
-	    request, err := http.NewRequest("PUT", r.url+key, strings.NewReader(value))
+	    // @TODO split CMD HTTP to query
+	    queryArray := strings.SplitN(key,":",2)
+	    cmdHttp := queryArray[0]
+	    path := queryArray[1]
+	    
+	    request, err := http.NewRequest(cmdHttp, r.url+path, strings.NewReader(value))
 	    request.ContentLength = int64(len(value))
 	    log.Println("Query: "+r.url+key+" "+ value)
 	    
@@ -107,14 +112,6 @@ func (r *TemplateRegistry) Register(service *api.Service) error {
 	}
 
 	return nil    
-}
-
-func (r *TemplateRegistry) Deregsiter(service *api.Service) error {
-    return nil
-}
-
-func (r *TemplateRegistry) Update(service *api.Service) error {
-    return nil
 }
 
 func (r *TemplateRegistry) executeTemplates(action string, service *api.Service) (map[string]string, error) {

@@ -41,7 +41,7 @@ func TestNewWithGoodtemplate(t *testing.T) {
 func TestGetTemplates(t *testing.T) {
     
         // Set Env Variable with template
-    os.Setenv("ALL_TMPL_TEST","my template")
+    os.Setenv("ALL_TMPL_TEST","PUT:my template")
 
     // Run init
     templates :=getTemplates()
@@ -54,7 +54,7 @@ func TestGetTemplates(t *testing.T) {
 
 func TestExecuteTemplate(t *testing.T) {
     templates := make(map[string][]*template.Template)
-    templates["ALL"]=append(templates["ALL"], template.Must(template.New("etcd template").Parse("my template {{.}}")))
+    templates["ALL"]=append(templates["ALL"], template.Must(template.New("GET:etcd template").Parse("my template {{.}}")))
     
     query :=executeTemplates(templates,"ALL", "No data")
     log.Println("Executed template: ", strings.Join(query[:],","))

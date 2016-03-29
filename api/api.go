@@ -5,9 +5,8 @@ import (
 
 type RegistryAdapter interface {
     Ping() error
-    Register(service *Service) error
-    Deregsiter(service *Service) error
-    Update(service *Service) error
+    RunTemplate(status string, service *Service) error
+
 }
 
 type Service struct {
