@@ -78,29 +78,32 @@ func executeTemplates(templates map[string][]*template.Template, key string, sur
 }
 
 func (r *TemplateRegistry) Register(service *api.Service) error {
-    toSet, err := r.executeTemplates("REGISTER", service)
+    log.Println("start register for service %v", service)
+    toSet, err := r.executeTemplates("START", service)
     
     if err != nil {
 		return err
 	}
+	log.Println("Lens of query %v", len(toSet))
 
 	for key, value := range toSet {
 	    client := &http.Client{}
 	    request, err := http.NewRequest("PUT", r.url+key, strings.NewReader(value))
 	    request.ContentLength = int64(len(value))
+	    log.Println("Query: "+r.url+key+" "+ value)
 	    
 	    response, err := client.Do(request)
 	    if (err != nil) {
 	        log.Fatal(err)
-	        return nil
+	        return err
 	    }
 	    defer response.Body.Close()
 	    contents, err := ioutil.ReadAll(response.Body)
 	    if err != nil {
 	        log.Fatal(err)
-	        return nil
+	        return err
 	    }
-	    log.Print(contents)
+	    log.Print("response "+string(contents))
 	}
 
 	return nil    

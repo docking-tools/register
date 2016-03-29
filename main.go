@@ -49,7 +49,7 @@ func main () {
 
  
    
-   client, err:= template.NewTemplate(flag.Arg(0))
+   client, err:= template.NewTemplate(strings.TrimSuffix(flag.Arg(0), "/"))
    assert(err)
    docker, err:= doc.New(client) 
    
