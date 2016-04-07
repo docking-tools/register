@@ -7,33 +7,33 @@ import (
     "log"
     "net/url"
     "net/http"
-    "os"
     "strings"
     "text/template"
-    api "github.com/docking-tools/register/api"
+    "github.com/docking-tools/register/api"
+    "github.com/docking-tools/register/config"
+
 )
 
 // Usage:
 // @TODO
 
 type TemplateRegistry struct {
-    templates map[string][]*template.Template
+    templates map[string][]*config.ConfigTemplate
     url string // uri path
 }
 
-func NewTemplate(uri string) (api.RegistryAdapter, error) {
-    u, err := url.ParseRequestURI(uri)
+func NewTemplate(config *config.ConfigFile) (api.RegistryAdapter, error) {
+    u, err := url.ParseRequestURI(config.RegisterUrl)
     
     if err!=nil {
         return nil, err
     }
 
-    templates:= getTemplates()
-	
-	if len(templates)==0 {
+	if len(config.Templates)==0 {
 	    return nil, errors.New("No template found.")
 	}
-	return &TemplateRegistry{templates: templates, url: u.String()}, nil
+	parseTemplates(config.Templates)
+	return &TemplateRegistry{templates: config.Templates, url: u.String()}, nil
 }
 
 func (r *TemplateRegistry) Size() int {
@@ -44,105 +44,80 @@ func (r *TemplateRegistry) Ping() error {
     return nil
 }
 
-func getTemplates() map[string][]*template.Template {
-    	// Find all environment variables that contain ETCD_ and turn them into templates
-	templates := make(map[string][]*template.Template)
-	
-	for _, env := range os.Environ() {
-	    envArray := strings.SplitN(env, "=", 2)
-	    text := envArray[1]
-	    key := envArray[0]
-	    action := "ALL"
-	    
-	    // extract specific command template (start with REGISTER_TMPL, DEREGISTER_TMPL, PING_TMPL, UPDATE_TMPL, ALL_TMPL)
-	    if strings.Contains(key, "_TMPL_") {
-	        action = strings.SplitN(key, "_", 2)[0]
-	        log.Println("New template: %v", text)
-	        templates[action] = append(templates[action], template.Must(template.New("etcd template").Parse(text)))
+func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) {
+
+	for _,confList := range confTmpl {
+	    for _,conf := range confList {
+    	    conf.SetTmpl(template.Must(template.New("etcd template").Parse(conf.Template)))
+            log.Println("New template: ", conf)
 	    }
 	}
-	return templates
-}
-func executeTemplates(templates map[string][]*template.Template, key string, survey interface{}) []string {
-        t, ok :=templates[key]
-        var values []string
-    if ok {
-        values = make([]string, len(t))
-        for index, templ :=  range t {
-            var doc bytes.Buffer 
-            templ.Execute(&doc, survey) 
-             values[index] = doc.String() 
-        }
-    }
-    return values
 }
 
 func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) error {
-    log.Println("%v register for service %v", status, service)
-    toSet, err := r.executeTemplates(status, service)
-    
-    if err != nil {
-		return err
-	}
-	log.Println("Lens of query %v", len(toSet))
+    tmpls := []*config.ConfigTemplate {}
+    tmpls = append(tmpls, r.templates[status]...)
+    tmpls = append(tmpls, r.templates["ALL"]...) 
 
-	for key, value := range toSet {
-	    client := &http.Client{}
-	    // @TODO split CMD HTTP to query
-	    queryArray := strings.SplitN(key,":",2)
-	    cmdHttp := queryArray[0]
-	    path := queryArray[1]
-	    
-	    request, err := http.NewRequest(cmdHttp, r.url+path, strings.NewReader(value))
-	    request.ContentLength = int64(len(value))
-	    log.Println("Query: "+r.url+key+" "+ value)
-	    
-	    response, err := client.Do(request)
-	    if (err != nil) {
-	        log.Fatal(err)
-	        return err
-	    }
-	    defer response.Body.Close()
-	    contents, err := ioutil.ReadAll(response.Body)
+    log.Println("%v register for service %v", status, service)
+
+	for _, tmpl := range tmpls {
+	    query,err :=executeTemplates(tmpl, service)
 	    if err != nil {
-	        log.Fatal(err)
-	        return err
-	    }
-	    log.Print("response "+string(contents))
+            return err
+        }
+        err = exectureQuery(r.url, query, tmpl.HttpCmd)  
+        if err != nil {
+            return err
+        }        
 	}
 
 	return nil    
 }
 
-func (r *TemplateRegistry) executeTemplates(action string, service *api.Service) (map[string]string, error) {
-    tmpls := []*template.Template {}
-    
-    buf := &bytes.Buffer {}
-    tmpls = append(tmpls, r.templates[action]...)
-    tmpls = append(tmpls, r.templates["ALL"]...) 
+func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string,error) {
 
-    results := make(map[string]string, len(tmpls))
-    
-    for _,t := range tmpls {
-        // Execute the template with the service as the data item
-        buf.Reset()
-        err := t.Execute(buf, service)
-        if err != nil {
-            return nil, err
-        }
-        
-        // The templates needs to return "<keyPath> <data>". The key must not 
-        // contain any spaces, so we use the first space as the split between the two.
-        // If nothing is resturned, then that says not tu use that template
-        pair := strings.SplitN(buf.String(), " ", 2)
-        if 2== len(pair) {
-            key := strings.TrimSpace(pair[0])
-            value := strings.TrimSpace(pair[1])
-            if len(key) > 0 {
-                results[key] = value
+    bufQuery := &bytes.Buffer {}
+    // Execute the template with the service as the data item
+    bufQuery.Reset()
+
+    err := conf.Tmpl().Execute(bufQuery, service)
+    if err != nil {
+        return "", err
+    }
+      
+
+    return bufQuery.String(), nil
+}
+
+func exectureQuery(url string, tmpl string, httpCmd string) error {
+        client := &http.Client{}    
+        querys := strings.Split(tmpl,`\n`)
+
+    for _,query := range querys {        
+        queryTab := strings.SplitN(query, " ", 2)
+        path := queryTab[0]
+        value := queryTab[1]
+
+        if len(path) > 0 {
+            request, err := http.NewRequest(httpCmd, url+path, strings.NewReader(value))
+            request.ContentLength = int64(len(value))
+            log.Println("Query: "+url+path+" "+ value)
+            
+            response, err := client.Do(request)
+            if (err != nil) {
+                log.Fatal(err)
+                return err
+            }
+            defer response.Body.Close()
+            contents, err := ioutil.ReadAll(response.Body)
+            if err != nil {
+                log.Fatal(err)
+                return err
+            } else {
+                log.Print("response "+string(contents))
             }
         }
     }
-        
-    return results, nil
+    return nil
 }

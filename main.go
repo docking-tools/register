@@ -6,13 +6,13 @@ import(
     "fmt"
     "log"
     "os"
-    "strings"
     doc "github.com/docking-tools/register/docker"  
-    template "github.com/docking-tools/register/template"  
+    template "github.com/docking-tools/register/template"
+    config "github.com/docking-tools/register/config"
 
 )
 
-var hostIp = flag.String("ip", "", "Ip for ports mapped to the host")
+
 
 func assert(err error) {
 	if err != nil {
@@ -24,6 +24,10 @@ func main () {
    
    log.Printf("Starting register ...")
   
+
+	
+    configDir := flag.String("c", config.ConfigDir(), "Path for config dir (default $DOCKING_CONFIG)")
+
    flag.Usage= func () {
        fmt.Fprintf(os.Stderr, "Usage of .....", os.Args[0])
        // @TODO create Usage helper
@@ -31,27 +35,27 @@ func main () {
    }
    
    flag.Parse()
-   
-   if flag.NArg() != 1 {
-        if flag.NArg() == 0 {
-            fmt.Fprintln(os.Stderr, "Missiong required argument for registry URI. \n\n")
-        } else {
-            fmt.Fprintln(os.Stderr, " ", strings.Join(flag.Args()[1:], " "))
-            fmt.Fprint(os.Stderr, "Options should come before the registry URI argument. \n\n")
-        }
-        flag.Usage()
-        os.Exit(2)
-   }
-   
-   if *hostIp != "" {
-       log.Println("Forcing host IP to ", *hostIp)
-   }
 
+   	configFile, e := config.Load(*configDir)
+
+	if e != nil {
+   	    configFile.Save()
+		fmt.Fprintf(os.Stderr, "WARNING: Error loading config file:%v\n", e)
+	}   
+
+    hostIp := flag.String("ip", "", "Ip for ports mapped to the host")
+
+
+   
+    if *hostIp != "" {
+       log.Println("Forcing host IP to ", *hostIp)
+    }
+    log.Printf("Configuration:  ", configFile)
  
    
-   client, err:= template.NewTemplate(strings.TrimSuffix(flag.Arg(0), "/"))
+   client, err:= template.NewTemplate(configFile)
    assert(err)
-   docker, err:= doc.New(client) 
+   docker, err:= doc.New(client, configFile) 
    
    assert(err)
 

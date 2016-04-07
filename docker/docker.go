@@ -9,6 +9,7 @@ import (
     "strings"
     dockerapi "github.com/fsouza/go-dockerclient"
     api "github.com/docking-tools/register/api"
+    "github.com/docking-tools/register/config"
 )
 
 type DockerRegistry struct {
@@ -31,10 +32,14 @@ func assert(err error) {
 	}
 }
 
-func New(registry api.RegistryAdapter) (*DockerRegistry, error) {
+func New(registry api.RegistryAdapter, config *config.ConfigFile) (*DockerRegistry, error) {
     
     // Init docker
-       dockerHost:= os.Getenv("DOCKER_HOST")
+    
+   dockerHost:= config.DockerUrl
+   if dockerHost == "" {
+   	dockerHost= os.Getenv("DOCKER_HOST")
+   }
    if dockerHost == "" {
         os.Setenv("DOCKER_HOST", "unix:///tmp/docker.sock")
    }
@@ -140,6 +145,7 @@ func (doc *DockerRegistry) newService(port DockerServicePort, isgroup bool) *api
 	service.Origin = port.ServicePort
 	service.ID = hostname + ":" + container.Name[1:] + ":" + port.ExposedPort
 	service.Name = mapDefault(metadata, "name", defaultName)
+	service.Version = mapDefault(metadata, "version", "default")
 	if isgroup && !metadataFromPort["name"] {
 		service.Name += "-" + port.ExposedPort
 	}
