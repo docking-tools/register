@@ -39,7 +39,6 @@ func main () {
    	configFile, e := config.Load(*configDir)
 
 	if e != nil {
-   	    configFile.Save()
 		fmt.Fprintf(os.Stderr, "WARNING: Error loading config file:%v\n", e)
 	}   
 

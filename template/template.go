@@ -48,7 +48,7 @@ func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) {
 
 	for _,confList := range confTmpl {
 	    for _,conf := range confList {
-    	    conf.SetTmpl(template.Must(template.New("etcd template").Parse(conf.Template)))
+    	    conf.SetTmpl(template.Must(template.New(conf.Name).Parse(conf.Template)))
             log.Println("New template: ", conf)
 	    }
 	}
@@ -92,12 +92,15 @@ func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string
 
 func exectureQuery(url string, tmpl string, httpCmd string) error {
         client := &http.Client{}    
-        querys := strings.Split(tmpl,`\n`)
+        querys := strings.Split(tmpl,"\n")
 
     for _,query := range querys {        
         queryTab := strings.SplitN(query, " ", 2)
         path := queryTab[0]
-        value := queryTab[1]
+        value := ""
+        if (len(queryTab)==2) {
+            value = queryTab[1]
+        }
 
         if len(path) > 0 {
             request, err := http.NewRequest(httpCmd, url+path, strings.NewReader(value))

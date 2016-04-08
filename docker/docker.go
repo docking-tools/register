@@ -178,6 +178,7 @@ func (doc *DockerRegistry) newService(port DockerServicePort, isgroup bool) *api
 	delete(metadata, "id")
 	delete(metadata, "tags")
 	delete(metadata, "name")
+	delete(metadata, "version")
 	service.Attrs = metadata
 //	service.TTL = doc.config.RefreshTtl
 

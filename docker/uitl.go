@@ -3,15 +3,9 @@ package docker
 import (
 	"strconv"
 	"strings"
-
-	"github.com/cenkalti/backoff"
 	dockerapi "github.com/fsouza/go-dockerclient"
 	api "github.com/docking-tools/register/api"
 )
-
-func retry(fn func() error) error {
-	return backoff.Retry(fn, backoff.NewExponentialBackOff())
-}
 
 func mapDefault(m map[string]string, key, default_ string) string {
 	v, ok := m[key]

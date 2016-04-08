@@ -1,10 +1,10 @@
-FROM busybox
+FROM debian
 
 ENV REGISTRY_VERSION 0.0.1
 ENV BIN_URL https://github.com/docking-tools/register/releases/download/0.0.1/register
 
 COPY example/config.json /register/config.json
 
-RUN cd /register && wget $BIN_URL
+RUN cd /register && apt-get update && apt-get install -y wget && wget $BIN_URL && apt-get remove -y wget
 
 CMD register -c /register/config.json
