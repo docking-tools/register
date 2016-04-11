@@ -1,12 +1,16 @@
 #!  /bin/sh
 set -e
 
-if [ "$1" = 'dev' ]; then
+echo " param 1 $1"
+echo "param @ $@"
+
+
+if [ "$1" = 'register' ]; then
     shift
-    register -c /register/config.json
-        --hostip="$HOST_IP" \
-        --register="$REGISTER_URL" \
-        --docker="$DOCKER_URL" \
+    DOCKING_CONFIG=/register register  
+        -ip="$HOST_IP" \
+        -r="$REGISTER_URL" \
+        -d="$DOCKER_URL" \
         "$@"
 else
     exec "$@"
