@@ -5,8 +5,11 @@ sudo: false
 before_script: 
 script:
 - go test -v -cover ./...
-install: 
 - go install
+install: 
+- go get github.com/tools/godep
+- godep restore
+
 after_success:
 - '[ "$TRAVIS_BRANCH" == "master" ] && curl -X POST -H "Content-Type: application/json"
   --data ''{"docker_tag_name": "latest"}'' https://registry.hub.docker.com/u/dockingtools/register/trigger/$DOCKER_HUB_TOKEN/  '
@@ -14,6 +17,6 @@ deploy:
   provider: releases
   api_key:
     secure: OffiEJCdiMAaaawkib8GrmBngqyvCSf8oeCGlkbFhaZOEIvutyUkLwy3hqGeFjdK5YzBsWbIXnt2sHApyLwgJRigXTYAVOg97KH+nNHXqjN4q7E4UN18Vz7RN3WnalwEYxF3VAlS1Q2NkOvicIWy9FmEZm5tD2i9zzk1zUBoACROO22OU+bWaQqL8N8ZbfQorRZ6VNDPajVro+zJyrRyvP+ufLy0xd8ikrxueN/Mt/ep5vFIJ6djrB3vdDA1RTx6g1Xq8IQX9J9+SCuijT04ZnCnRV1B0Fe6wHxBU9p+LZGLPIl8BOLB3C2EuzEiwCQ5Xz2j3T9v3abEolIkoxSu8lCzX8l0YUQV/Hql+Lkk53ehO2IoL7/ZqHWaRbS1JORZCmhhO3cEnUYu8nYSXXayZkWm+uudW/zTKOBPBQ46xjI3CkuuIu2Gsa45YOXj1nWT1+nvExfSQ6xptZZV0RPMtukbZnFCtjs7bcyzRI5oSFUMzEIStJHuoSJKuz9wSiMSow8glK/NVin8h1Y2Ug46kfcSicr8FygrwxRhwPvmxFwBmbWrj6Sp3vMGeiFbt6dtBaf3Ir+9+e1eVd3DTS7VG8x7EKf9nbo/NbMMK1yjJGX4GmPiaYK5QRBj69PTg8ffW37DSEbOiAkYaOBuV3h8zdyxQs6fBc6do3jCohsK5ro=
-  file: register
+  file: out/register
   on:
     repo: docking-tools/register
