@@ -3,6 +3,7 @@ go:
 - 1.6
 sudo: false
 before_script: 
+- go get github.com/stretchr/testify/assert
 script:
 - go test -v -cover ./...
 - go install
