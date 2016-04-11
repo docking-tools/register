@@ -1,5 +1,7 @@
 # register 
 [![Build Status](https://travis-ci.org/docking-tools/register.svg?branch=master)](https://travis-ci.org/docking-tools/register)
+[![GoDoc](https://godoc.org/github.com/docking-tools/register?status.svg)](https://godoc.org/github.com/docking-tools/register)
+
 This tools use  [Golang template](https://golang.org/pkg/text/template/)
 ## Usage
 ```sh
