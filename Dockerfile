@@ -7,4 +7,7 @@ COPY example/config.json /register/config.json
 
 RUN cd /register && apt-get update && apt-get install -y wget && wget $BIN_URL && apt-get remove -y wget
 
-CMD register -c /register/config.json
+COPY entrypoint.sh /
+ENTRYPOINT ["/entrypoint.sh"]
+
+CMD register

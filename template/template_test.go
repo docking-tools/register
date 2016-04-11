@@ -122,3 +122,4 @@ func TestStructMultiQuery(t *testing.T) {
     assert.Equal(t, "/v1/kv/services/attr1 value1\n/v1/kv/services/attr2 value2\n", query)
 
 }
+

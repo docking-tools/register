@@ -41,14 +41,20 @@ func main () {
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "WARNING: Error loading config file:%v\n", e)
 	}   
+	
+	
 
-    hostIp := flag.String("ip", "", "Ip for ports mapped to the host")
+    flag.StringVar(&configFile.HostIp, "-hostip", configFile.HostIp,  "Ip for ports mapped to the host")
+    flag.StringVar(&configFile.HostIp, "h", configFile.HostIp,  "Ip for ports mapped to the host (shorthand)")
+    flag.StringVar(&configFile.RegisterUrl, "-register", configFile.RegisterUrl, "URL for discovery")
+    flag.StringVar(&configFile.RegisterUrl, "r", configFile.RegisterUrl, "URL for discovery (shorthand)")
+    flag.StringVar(&configFile.DockerUrl, "-docker", configFile.DockerUrl, "URL for docker")
+    flag.StringVar(&configFile.DockerUrl, "d", configFile.DockerUrl, "URL for docker (shorthand)")
+    
+    
 
+    flag.Parse()
 
-   
-    if *hostIp != "" {
-       log.Println("Forcing host IP to ", *hostIp)
-    }
     log.Printf("Configuration:  ", configFile)
  
    
