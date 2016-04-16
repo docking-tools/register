@@ -6,6 +6,7 @@ import(
     "fmt"
     "log"
     "os"
+    "github.com/docking-tools/register/api" 
     doc "github.com/docking-tools/register/docker"  
     template "github.com/docking-tools/register/template"
     config "github.com/docking-tools/register/config"
@@ -58,10 +59,17 @@ func main () {
    
    client, err:= template.NewTemplate(configFile)
    assert(err)
-   docker, err:= doc.New(client, configFile) 
+   docker, err:= doc.New(configFile) 
    
    assert(err)
 
-   docker.Start()	
+   docker.Start(func(status string, service *api.Service, closeChan chan error) error {
+			err := client.RunTemplate(status, service)
+			if err != nil {
+				closeChan <- err
+				return nil
+			}
+			return nil
+		})	
 }
 

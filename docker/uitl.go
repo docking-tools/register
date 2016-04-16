@@ -3,8 +3,10 @@ package docker
 import (
 	"strconv"
 	"strings"
-	dockerapi "github.com/fsouza/go-dockerclient"
+	"github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/types/container"
 	api "github.com/docking-tools/register/api"
+	"github.com/docker/go-connections/nat"
 )
 
 func mapDefault(m map[string]string, key, default_ string) string {
@@ -25,7 +27,7 @@ func combineTags(tagParts ...string) []string {
 	return tags
 }
 
-func serviceMetaData(config *dockerapi.Config, port string) (map[string]string, map[string]bool) {
+func serviceMetaData(config *container.Config, port string) (map[string]string, map[string]bool) {
 	meta := config.Env
 	for k, v := range config.Labels {
 		meta = append(meta, k+"="+v)
@@ -55,7 +57,7 @@ func serviceMetaData(config *dockerapi.Config, port string) (map[string]string, 
 	return metadata, metadataFromPort
 }
 
-func servicePort(container *dockerapi.Container, port dockerapi.Port, published []dockerapi.PortBinding) DockerServicePort {
+func servicePort(container *types.ContainerJSON, port nat.Port, published []nat.PortBinding) DockerServicePort {
 	var hp, hip, ep, ept, eip string
 	if len(published) > 0 {
 		hp = published[0].HostPort

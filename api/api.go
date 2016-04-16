@@ -3,6 +3,8 @@ package api
 import (
 )
 
+type EventProcessor func(status string, service *Service, closeChan chan error) error
+
 type RegistryAdapter interface {
     Ping() error
     RunTemplate(status string, service *Service) error
@@ -18,6 +20,7 @@ type Service struct {
 	Tags  []string
 	Attrs map[string]string
 	TTL   int
+	Container struct{}
 
 	Origin ServicePort
 }

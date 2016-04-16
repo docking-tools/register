@@ -59,7 +59,7 @@ func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) erro
     tmpls = append(tmpls, r.templates[status]...)
     tmpls = append(tmpls, r.templates["ALL"]...) 
 
-    log.Println("%v register for service %v", status, service)
+    log.Printf("%s register for service %s, %d", status, service, len(tmpls))
 
 	for _, tmpl := range tmpls {
 	    query,err :=executeTemplates(tmpl, service)
@@ -76,7 +76,7 @@ func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) erro
 }
 
 func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string,error) {
-
+    log.Printf("Execute template %s", conf)
     bufQuery := &bytes.Buffer {}
     // Execute the template with the service as the data item
     bufQuery.Reset()
@@ -91,6 +91,7 @@ func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string
 }
 
 func exectureQuery(url string, tmpl string, httpCmd string) error {
+    log.Println("Execute template query %s", tmpl)
         client := &http.Client{}    
         querys := strings.Split(tmpl,"\n")
 

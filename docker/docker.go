@@ -1,21 +1,24 @@
 package docker
 
 import (
+	"encoding/json"
+	"io"
     "log"
     "os"
-    "net"
-    "path"
-    "strconv"
-    "strings"
-    dockerapi "github.com/fsouza/go-dockerclient"
+    "time"
+    "github.com/docker/engine-api/client"
+    "github.com/docker/engine-api/types"
+    "github.com/docker/engine-api/types/filters"
+    eventtypes "github.com/docker/engine-api/types/events"
+    "golang.org/x/net/context"
     api "github.com/docking-tools/register/api"
     "github.com/docking-tools/register/config"
+    
 )
 
 type DockerRegistry struct {
-    docker      *dockerapi.Client
-    events      <-chan *dockerapi.APIEvents
-    registry    api.RegistryAdapter
+    docker      *client.Client
+    events      <-chan *io.ReadCloser
 }
 
 type DockerServicePort struct {
@@ -23,7 +26,7 @@ type DockerServicePort struct {
     ContainerHostname string
 	ContainerID       string
 	ContainerName     string
-	container         *dockerapi.Container
+	container         *types.ContainerJSON
 }
 
 func assert(err error) {
@@ -32,7 +35,7 @@ func assert(err error) {
 	}
 }
 
-func New(registry api.RegistryAdapter, config *config.ConfigFile) (*DockerRegistry, error) {
+func New(config *config.ConfigFile) (*DockerRegistry, error) {
     
     // Init docker
     
@@ -40,150 +43,122 @@ func New(registry api.RegistryAdapter, config *config.ConfigFile) (*DockerRegist
    if dockerHost == "" {
    	dockerHost= os.Getenv("DOCKER_HOST")
    }
-   if dockerHost == "" {
-        os.Setenv("DOCKER_HOST", "unix:///tmp/docker.sock")
-   }
-   docker, err := dockerapi.NewClientFromEnv()
-   assert(err)
-   
-   events:= make(chan *dockerapi.APIEvents)
-   assert(docker.AddEventListener(events))
+	log.Printf("Start docker client %s", dockerHost)
+
+	// Init client docker
+	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
+	docker, err := client.NewClient(dockerHost, "v1.22", nil, defaultHeaders)
+
+   if err != nil {
+        panic(err)
+    }
+
+
    
     return &DockerRegistry{
         docker:   docker,
-        events: events,
-        registry: registry,
+        events: nil,
     }, nil
 }
 
-func (doc * DockerRegistry) Start() {
-   log.Println("Listening for Docker events ...")
-   
-   quit := make(chan struct{})
-   
-   // Process Docker events
-   for msg:= range doc.events {
-       log.Printf("New event received %v", msg)
+func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 
-  
-       log.Printf("%v id: %v from: %v", msg.Status, msg.ID, msg.From)
-       doc.createService(msg.Status, msg.ID)
-    }
-      close(quit)
+   // check if an error occur during watch event
+   closeChan := make(chan error)
+   
+	monitorContainerEvents := func(started chan<- struct{}, c chan<-eventtypes.Message) {
+		f := filters.NewArgs()
+		f.Add("type", "container")
+		options := types.EventsOptions{
+			Filters: f,
+		}
+		resBody, err := doc.docker.Events(context.Background(), options)
+		// Whether we successfully subscribed to events or not, we can now
+		// unblock the main goroutine.
+		close(started)
+		log.Printf("Start listenig docker event")		
+		if err != nil {
+			closeChan <- err
+			return
+		}
+		defer resBody.Close()
+
+		// Decode event
+		dec := json.NewDecoder(resBody)
+		for {
+			var event eventtypes.Message
+			err := dec.Decode(&event)
+			if err != nil && err == io.EOF {
+				break
+			}
+			c <- event
+		
+		}
+	}
+	
+	
+	eh := eventHandler{handlers: make(map[string]func(eventtypes.Message))}
+		eh.Handle("*", func(e eventtypes.Message) {
+			filters := filters.NewArgs()
+			filters.Add("id", e.ID)
+			container, err := doc.docker.ContainerInspect(context.Background(), e.ID)
+			if err != nil {
+				closeChan <- err
+			}
+			log.Printf("new event %v id: %v",e.Status,e.ID)
+			services :=  make([]*api.Service,0)
+			if &container != nil  {
+				service := new(api.Service)
+				service.ID=e.ID[:12]
+				services = append( make([]*api.Service,0), service)
+			} else {
+				services, err = createService(&container)
+				if err != nil {
+					closeChan <- err
+				}
+			}
+
+			for _,service := range services {
+				go ep(e.Status, service , closeChan)
+			}
+		})
+	
+	
+	
+	// start listening event
+	started := make(chan struct{})
+	eventChan := make(chan eventtypes.Message)
+	go eh.Watch(eventChan)
+	go monitorContainerEvents(started, eventChan)
+	defer close(eventChan)
+	<-started
+   
+   
+   
+   
+   for range time.Tick(500 * time.Millisecond) {
+		select {
+		case err, ok := <-closeChan:
+			if ok {
+				if err != nil {
+					// this is suppressing "unexpected EOF" in the cli when the
+					// daemon restarts so it shutdowns cleanly
+					if err != io.ErrUnexpectedEOF {
+						closeChan <- err
+						log.Printf("Error on run",err)	
+						close(closeChan)
+					}
+				}
+			}
+		default:
+			// just skip
+		}
+   }
    log.Fatal("Docker event loop closed")
 }
 
 
 
-func (doc *DockerRegistry) createService(status string, containerId string) {
-   container, err:= doc.docker.InspectContainer(containerId)
-   	if err != nil {
-		log.Println("unable to inspect container:", containerId[:12], err)
-		return
-	}     
-	ports := make(map[string]DockerServicePort)
-	
-	// Extract configured host port mappings, relevant when using --net=host
-	for port, published := range container.HostConfig.PortBindings {
-		ports[string(port)] = servicePort(container, port, published)
-	}
-
-	// Extract runtime port mappings, relevant when using --net=bridge
-	for port, published := range container.NetworkSettings.Ports {
-		ports[string(port)] = servicePort(container, port, published)
-	}
-
-	if len(ports) == 0 {
-		log.Println("ignored:", container.ID[:12], "no published ports")
-		return
-	}
-
-	for _, port := range ports {
-        service := doc.newService(port, len(ports) > 1)
-		if service == nil {
-				log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort)
-			continue
-		}
-		err := doc.registry.RunTemplate(strings.ToUpper(status), service)
-		if err != nil {
-			log.Println("RunTemplate failed:", service, err)
-			continue
-		}
-//		doc.services[container.ID] = append(b.services[container.ID], service)
-    }
-}
-
-
-func (doc *DockerRegistry) newService(port DockerServicePort, isgroup bool) *api.Service {
-	container := port.container
-	defaultName := strings.Split(path.Base(container.Config.Image), ":")[0]
-
-	// not sure about this logic. kind of want to remove it.
-	hostname := Hostname
-	if hostname == "" {
-		hostname = port.HostIP
-	}
-	if port.HostIP == "0.0.0.0" {
-		ip, err := net.ResolveIPAddr("ip", hostname)
-		if err == nil {
-			port.HostIP = ip.String()
-		}
-	}
-
-//	if b.config.HostIp != "" {
-//		port.HostIP = doc.config.HostIp
-//	}
-
-	metadata, metadataFromPort := serviceMetaData(container.Config, port.ExposedPort)
-
-	ignore := mapDefault(metadata, "ignore", "")
-	if ignore != "" {
-		return nil
-	}
-
-	service := new(api.Service)
-	service.Origin = port.ServicePort
-	service.ID = hostname + ":" + container.Name[1:] + ":" + port.ExposedPort
-	service.Name = mapDefault(metadata, "name", defaultName)
-	service.Version = mapDefault(metadata, "version", "default")
-	if isgroup && !metadataFromPort["name"] {
-		service.Name += "-" + port.ExposedPort
-	}
-	var p int
-//	if doc.config.Internal == true {
-//		service.IP = port.ExposedIP
-//		p, _ = strconv.Atoi(port.ExposedPort)
-//	} else {
-		service.IP = port.HostIP
-		p, _ = strconv.Atoi(port.HostPort)
-//	}
-	service.Port = p
-
-	if port.PortType == "udp" {
-        service.Tags = combineTags(
-//			mapDefault(metadata, "tags", ""), b.config.ForceTags, "udp")
-			mapDefault(metadata, "tags", ""), "", "udp")
-		service.ID = service.ID + ":udp"
-	} else {
-		service.Tags = combineTags(
-//			mapDefault(metadata, "tags", ""), b.config.ForceTags)
-			mapDefault(metadata, "tags", ""), "")
-	}
-
-	id := mapDefault(metadata, "id", "")
-	if id != "" {
-		service.ID = id
-	}
-
-	delete(metadata, "id")
-	delete(metadata, "tags")
-	delete(metadata, "name")
-	delete(metadata, "version")
-	service.Attrs = metadata
-//	service.TTL = doc.config.RefreshTtl
-
-	return service
-}
 
 var Hostname string
 
