@@ -1,15 +1,26 @@
 {
-	"dockerUrl": "",
-	"registerUrl": "",
-	"hostIp": "",
+	"dockerUrl": "tcp://192.168.11.65:2375",
+	"registerUrl": "http://10.98.81.240:8500/v1/kv/tenant_name/Swarm_cluster",
+	"hostIp": "10.98.81.22",
 	"templates": {
-		"ALL": [
+		"START,RUNNING": [
 			{
-				"name": "TEST",
-				"event": "ALL",
-				"httpCmd": "et",
-				"query": "{{range $key, $value := .Attrs }}/v1/kv/services/{{$key}} {{$value}}\n{{end}}"
+				"name": "addService",
+				"httpCmd": "PUT",
+				"query": "/services/{{.Name}}/{{.Version}}/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/{{.ID}}/tags {{$.Tags}}\n"
+			},
+			{
+				"name": "addAttr",
+				"httpCmd": "PUT",
+				"query": "{{$ServName := .Name}}{{$ServVersion := .Version}}{{range $key, $value := .Attrs }}/services/{{$ServName}}/{{$ServVersion}}/{{$key}} {{$value}}\n{{end}}"
 			}
-		]
+		],
+		"DIE": [
+			{
+				"name": "deleteNode",
+				"httpCmd": "DELETE",
+				"query": "/services/{{.Name}}/{{.Version}}/{{.ID}}?recurse\n"
+			}
+		]			
 	}
 }
