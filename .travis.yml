@@ -12,7 +12,7 @@ install:
 - godep restore
 after_deploy:
 - |
-  if [ -z  $TRAVIS_TAG ] then data='{"docker_tag":"latest"}';  else data='{"source_type":"Tag", "source_name":"'$TRAVIS_TAG'"}'; fi
+  if [ -z  $TRAVIS_TAG ] then data='{"docker_tag":"latest"}';  elseif data='{"source_type":"Tag", "source_name":"'$TRAVIS_TAG'"}'; fi
   curl -H "Content-Type:application/json" --data $data  -X POST https://registry.hub.docker.com/u/dockingtools/register/trigger/$DOCKER_HUB_TOKEN/
 deploy:
   provider: releases
