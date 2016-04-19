@@ -7,7 +7,7 @@
 			{
 				"name": "addService",
 				"httpCmd": "PUT",
-				"query": "/services/{{.Name}}/{{.Version}}/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/{{.ID}}/tags {{$.Tags}}\n"
+				"query": "/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/{{.ID}}/tags {{$.Tags}}\n"
 			},
 			{
 				"name": "addAttr",
@@ -19,7 +19,7 @@
 			{
 				"name": "deleteNode",
 				"httpCmd": "DELETE",
-				"query": "/services/{{.Name}}/{{.Version}}/{{.ID}}?recurse\n"
+				"query": "/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}?recurse\n"
 			}
 		]			
 	}

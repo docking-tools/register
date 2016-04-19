@@ -24,7 +24,11 @@ func createService(container *types.ContainerJSON) ([]*api.Service, error) {
 		}
 
 	} else {
-		ports["die"] = servicePort(container, "", []nat.PortBinding{})
+		ports["die"] = DockerServicePort{
+			ContainerID:       container.ID,
+			ContainerHostname: container.Config.Hostname,
+			container:         container,
+		}
 	}
 	
     services := make([]*api.Service,0)
@@ -47,6 +51,10 @@ func newService(port DockerServicePort, isgroup bool) *api.Service {
 	defaultName := strings.Split(path.Base(container.Config.Image), ":")[0]
 
 	// not sure about this logic. kind of want to remove it.
+	if b.config.HostIp != "" {
+		port.HostIP = doc.config.HostIp
+	}
+
 	hostname := Hostname
 	if hostname == "" {
 		hostname = port.HostIP
@@ -58,9 +66,7 @@ func newService(port DockerServicePort, isgroup bool) *api.Service {
 		}
 	}
 
-//	if b.config.HostIp != "" {
-//		port.HostIP = doc.config.HostIp
-//	}
+
 
 	metadata, metadataFromPort := serviceMetaData(container.Config, port.ExposedPort)
 
