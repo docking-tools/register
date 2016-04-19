@@ -1,0 +1,7 @@
+verison 2
+  register:
+    image: 
+    link:
+      - registry
+  regsitry:
+    images: progrium/consul

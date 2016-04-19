@@ -95,32 +95,49 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		
 		}
 	}
+
+	parseService := func(id string, status string) {
+		container, err := doc.docker.ContainerInspect(context.Background(), id)
+		if err != nil {
+			closeChan <- err
+		}
+		if (status=="") {
+			status =container.State.Status
+		}
+		
+		services :=  make([]*api.Service,0)
+		services, err = createService(&container)
+		if err != nil {
+			closeChan <- err
+		}
+
+		for _,service := range services {
+			go ep(status, service , closeChan)
+		}
 	
+	}	
+
 	
+	// getContainerList simulates creation event for all previously existing
+	// containers.
+	getContainerList := func() {
+		options := types.ContainerListOptions{
+			Quiet: false,
+		}
+		cs, err := doc.docker.ContainerList(context.Background(), options)
+		if err != nil {
+			closeChan <- err
+		}
+		for _, container := range cs {
+			parseService(container.ID, container.State)
+		}
+	}
+	
+
 	eh := eventHandler{handlers: make(map[string]func(eventtypes.Message))}
 		eh.Handle("*", func(e eventtypes.Message) {
-			filters := filters.NewArgs()
-			filters.Add("id", e.ID)
-			container, err := doc.docker.ContainerInspect(context.Background(), e.ID)
-			if err != nil {
-				closeChan <- err
-			}
 			log.Printf("new event %v id: %v",e.Status,e.ID)
-			services :=  make([]*api.Service,0)
-			if &container != nil  {
-				service := new(api.Service)
-				service.ID=e.ID[:12]
-				services = append( make([]*api.Service,0), service)
-			} else {
-				services, err = createService(&container)
-				if err != nil {
-					closeChan <- err
-				}
-			}
-
-			for _,service := range services {
-				go ep(e.Status, service , closeChan)
-			}
+			parseService(e.ID, e.Status)
 		})
 	
 	
@@ -132,6 +149,8 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 	go monitorContainerEvents(started, eventChan)
 	defer close(eventChan)
 	<-started
+	
+	getContainerList ()
    
    
    

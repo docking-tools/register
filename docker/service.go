@@ -8,6 +8,7 @@ import (
     "strings"
     "github.com/docker/engine-api/types"
     api "github.com/docking-tools/register/api"
+	"github.com/docker/go-connections/nat"
     
 )
 
@@ -15,20 +16,18 @@ import (
 func createService(container *types.ContainerJSON) ([]*api.Service, error) {
  
 	ports := make(map[string]DockerServicePort)
-	
-	if container.NetworkSettings != nil {
+
+	if container.NetworkSettings != nil && len(container.NetworkSettings.Ports)>0 {
 		// Extract runtime port mappings, relevant when using --net=bridge
 		for port, published := range container.NetworkSettings.Ports {
 			ports[string(port)] = servicePort(container, port, published)
 		}
+
+	} else {
+		ports["die"] = servicePort(container, "", []nat.PortBinding{})
 	}
 	
     services := make([]*api.Service,0)
-    if len(ports) == 0 {
-		log.Println("ignored:", container.ID[:12], "no published ports")
-
-	}
-
 
 	for _, port := range ports {
         service := newService(port, len(ports) > 1)

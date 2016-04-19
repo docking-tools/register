@@ -6,7 +6,6 @@ import (
 type EventProcessor func(status string, service *Service, closeChan chan error) error
 
 type RegistryAdapter interface {
-    Ping() error
     RunTemplate(status string, service *Service) error
 
 }

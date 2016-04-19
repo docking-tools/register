@@ -18,6 +18,7 @@ import (
 // @TODO
 
 type TemplateRegistry struct {
+    api.RegistryAdapter
     templates map[string][]*config.ConfigTemplate
     url string // uri path
 }
@@ -32,8 +33,8 @@ func NewTemplate(config *config.ConfigFile) (api.RegistryAdapter, error) {
 	if len(config.Templates)==0 {
 	    return nil, errors.New("No template found.")
 	}
-	parseTemplates(config.Templates)
-	return &TemplateRegistry{templates: config.Templates, url: u.String()}, nil
+	
+	return &TemplateRegistry{templates: parseTemplates(config.Templates), url: u.String()}, nil
 }
 
 func (r *TemplateRegistry) Size() int {
@@ -44,23 +45,32 @@ func (r *TemplateRegistry) Ping() error {
     return nil
 }
 
-func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) {
+func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) map[string][]*config.ConfigTemplate {
 
-	for _,confList := range confTmpl {
+	for key,confList := range confTmpl {
+	    
 	    for _,conf := range confList {
     	    conf.SetTmpl(template.Must(template.New(conf.Name).Parse(conf.Template)))
-            log.Println("New template: ", conf)
+	    }
+	    if (strings.Contains(key,",")) {
+	        keys := strings.Split(key,",")
+	        for _,newKey := range keys {
+	            confTmpl[strings.ToUpper(newKey)] = append(confTmpl[strings.ToUpper(newKey)], confList...)
+	        }
+	        delete(confTmpl, key)
 	    }
 	}
+
+	return confTmpl
 }
 
 func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) error {
     tmpls := []*config.ConfigTemplate {}
-    tmpls = append(tmpls, r.templates[status]...)
+    tmpls = append(tmpls, r.templates[strings.ToUpper(status)]...)
     tmpls = append(tmpls, r.templates["ALL"]...) 
-
-    log.Printf("%s register for service %s, %d", status, service, len(tmpls))
-
+    if (len(tmpls)<1) {
+        log.Printf("no template found for event %s %v", strings.ToUpper(status), r.templates)
+    }
 	for _, tmpl := range tmpls {
 	    query,err :=executeTemplates(tmpl, service)
 	    if err != nil {
@@ -76,7 +86,6 @@ func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) erro
 }
 
 func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string,error) {
-    log.Printf("Execute template %s", conf)
     bufQuery := &bytes.Buffer {}
     // Execute the template with the service as the data item
     bufQuery.Reset()
@@ -91,7 +100,6 @@ func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string
 }
 
 func exectureQuery(url string, tmpl string, httpCmd string) error {
-    log.Println("Execute template query %s", tmpl)
         client := &http.Client{}    
         querys := strings.Split(tmpl,"\n")
 
@@ -106,8 +114,7 @@ func exectureQuery(url string, tmpl string, httpCmd string) error {
         if len(path) > 0 {
             request, err := http.NewRequest(httpCmd, url+path, strings.NewReader(value))
             request.ContentLength = int64(len(value))
-            log.Println("Query: "+url+path+" "+ value)
-            
+
             response, err := client.Do(request)
             if (err != nil) {
                 log.Fatal(err)

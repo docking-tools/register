@@ -33,7 +33,6 @@ func TestNewWithGoodtemplate(t *testing.T) {
     templates:= conf.Templates
     template := config.ConfigTemplate {
         Name:       "TEST",
-        Event:      "ALL",
         HttpCmd:    "PUT",
         Template:      "/my/query data exemple",
     }
@@ -46,13 +45,11 @@ func TestNewWithGoodtemplate(t *testing.T) {
     
 }
 
-
 func TestExecuteTemplate(t *testing.T) {
     conf := config.NewConfigFile("")
     templates :=conf.Templates 
     template := config.ConfigTemplate {
         Name:       "TEST",
-        Event:      "ALL",
         HttpCmd:    "et",
         Template:      "/my/query/{{.ID}} data exemple {{.Name}}",
     }
@@ -88,7 +85,6 @@ func TestStructMultiQuery(t *testing.T) {
     templates :=conf.Templates 
     template := config.ConfigTemplate {
         Name:       "TEST",
-        Event:      "ALL",
         HttpCmd:    "et",
         Template:      "{{range $key, $value := .Attrs }}/v1/kv/services/{{$key}} {{$value}}\n{{end}}",
     }
