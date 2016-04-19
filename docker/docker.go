@@ -19,6 +19,7 @@ import (
 type DockerRegistry struct {
     docker      *client.Client
     events      <-chan *io.ReadCloser
+    config		*config.ConfigFile
 }
 
 type DockerServicePort struct {
@@ -58,6 +59,7 @@ func New(config *config.ConfigFile) (*DockerRegistry, error) {
     return &DockerRegistry{
         docker:   docker,
         events: nil,
+        config: config,
     }, nil
 }
 
@@ -106,7 +108,7 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		}
 		
 		services :=  make([]*api.Service,0)
-		services, err = createService(&container)
+		services, err = createService(doc.config, &container)
 		if err != nil {
 			closeChan <- err
 		}

@@ -8,12 +8,11 @@ import (
     "strings"
     "github.com/docker/engine-api/types"
     api "github.com/docking-tools/register/api"
-	"github.com/docker/go-connections/nat"
-    
+    "github.com/docking-tools/register/config"
 )
 
 
-func createService(container *types.ContainerJSON) ([]*api.Service, error) {
+func createService(config *config.ConfigFile, container *types.ContainerJSON) ([]*api.Service, error) {
  
 	ports := make(map[string]DockerServicePort)
 
@@ -34,7 +33,7 @@ func createService(container *types.ContainerJSON) ([]*api.Service, error) {
     services := make([]*api.Service,0)
 
 	for _, port := range ports {
-        service := newService(port, len(ports) > 1)
+        service := newService(config, port, len(ports) > 1)
 		if service == nil {
 				log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort)
 			continue
@@ -46,20 +45,20 @@ func createService(container *types.ContainerJSON) ([]*api.Service, error) {
 }
 
 
-func newService(port DockerServicePort, isgroup bool) *api.Service {
+func  newService(config *config.ConfigFile, port DockerServicePort, isgroup bool) *api.Service {
 	container := port.container
 	defaultName := strings.Split(path.Base(container.Config.Image), ":")[0]
 
 	// not sure about this logic. kind of want to remove it.
-	if b.config.HostIp != "" {
-		port.HostIP = doc.config.HostIp
+	if config.HostIp != "" {
+		port.HostIP = config.HostIp
 	}
 
 	hostname := Hostname
 	if hostname == "" {
 		hostname = port.HostIP
 	}
-	if port.HostIP == "0.0.0.0" {
+	if port.HostIP == "0.0.0.0" || port.HostIP == "" {
 		ip, err := net.ResolveIPAddr("ip", hostname)
 		if err == nil {
 			port.HostIP = ip.String()
