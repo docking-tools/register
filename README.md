@@ -15,5 +15,7 @@ register http://<ip:port>
 ```sh
 docker run -it --rm -e HOST_IP="<public_ip>"" -e REGISTER_URL="http://xx.xx.xx.xx:xxxx" -e DOCKER_URL="" dockingtools/register:latest 
 ```
+or use config file on folder $DOCKING_TOOLS/config.json
+
 For consul, use http://<ip>:8500/v1/kv/<path>
 
