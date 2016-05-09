@@ -2,12 +2,15 @@
 	"dockerUrl": "tcp://192.168.11.65:2375",
 	"registerUrl": "http://10.98.81.240:8500/v1/kv/tenant_name/Swarm_cluster",
 	"hostIp": "10.98.81.22",
+	"httpHeaders": {
+		"X-Consul-Token": "{{ env CONSUL_TOKEN }}"	
+	},
 	"templates": {
 		"START,RUNNING": [
 			{
 				"name": "addService",
 				"httpCmd": "PUT",
-				"query": "/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/nodes{{.ID}}/tags {{$.Tags}}\n"
+				"query": "/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/tags {{$.Tags}}\n"
 			},
 			{
 				"name": "addAttr",
