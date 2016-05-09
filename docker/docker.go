@@ -102,21 +102,22 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		container, err := doc.docker.ContainerInspect(context.Background(), id)
 		if err != nil {
 			closeChan <- err
-		} else {
-			if (status=="") {
-				status =container.State.Status
-			}
-		
-			services :=  make([]*api.Service,0)
-			services, err = createService(doc.config, &container)
-			if err != nil {
-				closeChan <- err
-			}
-	
-			for _,service := range services {
-				go ep(status, service , closeChan)
-			}
+			return
 		}
+		if (status=="") {
+			status =container.State.Status
+		}
+	
+		services :=  make([]*api.Service,0)
+		services, err = createService(doc.config, &container)
+		if err != nil {
+			closeChan <- err
+		}
+
+		for _,service := range services {
+			go ep(status, service , closeChan)
+		}
+	
 	}	
 
 	

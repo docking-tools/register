@@ -47,10 +47,14 @@ func (r *TemplateRegistry) Ping() error {
 
 func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) map[string][]*config.ConfigTemplate {
 
+	funcs := map[string]interface{}{
+		"env": env,
+	}
+
 	for key,confList := range confTmpl {
 	    
 	    for _,conf := range confList {
-    	    conf.SetTmpl(template.Must(template.New(conf.Name).Parse(conf.Template)))
+    	    conf.SetTmpl(template.Must(template.New(conf.Name).Funcs(funcs).Parse(conf.Template)))
 	    }
 	    if (strings.Contains(key,",")) {
 	        keys := strings.Split(key,",")
@@ -126,7 +130,7 @@ func exectureQuery(url string, tmpl string, httpCmd string) error {
                 log.Fatal(err)
                 return err
             } else {
-                log.Print("response "+string(contents))
+                log.Printf("Query: %s / response %s "+string(contents))
             }
         }
     }

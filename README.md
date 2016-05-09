@@ -19,3 +19,13 @@ or use config file on folder $DOCKING_TOOLS/config.json
 
 For consul, use http://<ip>:8500/v1/kv/<path>
 
+
+## Templating
+### env
+
+Reads the given environment variable accessible to the current process.
+
+{{env "CLUSTER_ID"}}
+This function can be chained to manipulate the output:
+
+{{env "CLUSTER_ID" | toLower}}

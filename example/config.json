@@ -7,7 +7,7 @@
 			{
 				"name": "addService",
 				"httpCmd": "PUT",
-				"query": "/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/{{.ID}}/tags {{$.Tags}}\n"
+				"query": "/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/nodes{{.ID}}/tags {{$.Tags}}\n"
 			},
 			{
 				"name": "addAttr",
