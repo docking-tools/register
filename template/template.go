@@ -113,7 +113,7 @@ func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string
     return bufQuery.String(), nil
 }
 
-func exectureQuery(url string, tmpl string, httpCmd string) error {
+func exectureQuery(url string, tmpl string, httpCmd string, httpHeaders map[string]string) error {
         client := &http.Client{}    
         querys := strings.Split(tmpl,"\n")
 
@@ -128,7 +128,9 @@ func exectureQuery(url string, tmpl string, httpCmd string) error {
         if len(path) > 0 {
             request, err := http.NewRequest(httpCmd, url+path, strings.NewReader(value))
             request.ContentLength = int64(len(value))
-            request.Header.Add("If-None-Match", `W/"wyzzy"`)
+            for key,value range httpHeaders {
+                request.Header.Add(key, value)
+            }
             response, err := client.Do(request)
             if (err != nil) {
                 log.Fatal(err)
