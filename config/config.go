@@ -31,14 +31,14 @@ func ConfigDir() string {
 }
 
 type ConfigFile struct {
-    DockerUrl       string                      `json:"dockerUrl"`
-    RegisterUrl     string                      `json:"registerUrl"`
-	HostIp          string                      `json:"hostIp,omitpempty"`
-	Templates       map[string][]*ConfigTemplate  `json:"templates"`
-    filename        string                      // non persistent
+	LogLevel		string							`json:"logLevel"`
+    DockerUrl       string                      	`json:"dockerUrl"`
+    RegisterUrl     string                      	`json:"registerUrl"`
+	HostIp          string                      	`json:"hostIp,omitpempty"`
+	Templates       map[string][]*ConfigTemplate  	`json:"templates"`
+	HttpHeaders       map[string]string			  	`json:"httpHeaders,omitpempty"`
+    filename        string                      	// non persistent
 }
-
-
 
 // NewConfigFile initializes an empty configuration file for the given filename 'fn'
 func NewConfigFile(fn string) ConfigFile {

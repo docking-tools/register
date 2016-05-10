@@ -20,8 +20,13 @@ import (
 type TemplateRegistry struct {
     api.RegistryAdapter
     templates map[string][]*config.ConfigTemplate
+    httpHeader map[string]*template.Template
     url string // uri path
 }
+
+var	funcs = map[string]interface{}{
+		"env": env,
+	}
 
 func NewTemplate(config *config.ConfigFile) (api.RegistryAdapter, error) {
     u, err := url.ParseRequestURI(config.RegisterUrl)
@@ -34,7 +39,8 @@ func NewTemplate(config *config.ConfigFile) (api.RegistryAdapter, error) {
 	    return nil, errors.New("No template found.")
 	}
 	
-	return &TemplateRegistry{templates: parseTemplates(config.Templates), url: u.String()}, nil
+	
+	return &TemplateRegistry{templates: parseTemplates(config.Templates), httpHeader: parseMap(config.HttpHeaders) , url: u.String()}, nil
 }
 
 func (r *TemplateRegistry) Size() int {
@@ -45,11 +51,15 @@ func (r *TemplateRegistry) Ping() error {
     return nil
 }
 
-func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) map[string][]*config.ConfigTemplate {
+func parseMap(data map[string]string) map[string]*template.Template {
+    result := make(map[string]*template.Template)
+    for key, value := range data {
+        result[key] = template.Must(template.New(key).Funcs(funcs).Parse(value))
+    }
+    return result
+}
 
-	funcs := map[string]interface{}{
-		"env": env,
-	}
+func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) map[string][]*config.ConfigTemplate {
 
 	for key,confList := range confTmpl {
 	    
@@ -118,7 +128,7 @@ func exectureQuery(url string, tmpl string, httpCmd string) error {
         if len(path) > 0 {
             request, err := http.NewRequest(httpCmd, url+path, strings.NewReader(value))
             request.ContentLength = int64(len(value))
-
+            request.Header.Add("If-None-Match", `W/"wyzzy"`)
             response, err := client.Do(request)
             if (err != nil) {
                 log.Fatal(err)
@@ -130,7 +140,7 @@ func exectureQuery(url string, tmpl string, httpCmd string) error {
                 log.Fatal(err)
                 return err
             } else {
-                log.Printf("Query: %s / response %s "+string(contents))
+                log.Printf("Query: %s / response %s ",url+ path, string(contents))
             }
         }
     }
