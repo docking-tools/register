@@ -2,6 +2,7 @@ package template
 
 import (
     "log"
+    "os"
     "testing"
     "github.com/stretchr/testify/assert"
     "github.com/docking-tools/register/config"
@@ -117,5 +118,34 @@ func TestStructMultiQuery(t *testing.T) {
     assert.NotNil(t, query)
     assert.Equal(t, "/v1/kv/services/attr1 value1\n/v1/kv/services/attr2 value2\n", query)
 
+}
+
+func TestParseMap(t *testing.T) {
+    if err := os.Setenv("foo", "bar"); err != nil {
+		t.Fatal(err)
+	}
+    conf := map[string]string {
+        "key1": "{{ env \"foo\" }}",
+    }
+    
+    parsedHeaders := parseMap(conf)
+
+
+    service:= api.Service {
+        ID: "idddd",
+    	Name: "container A",
+    	Port: 8080,
+    	IP:    "0.0.0.0",
+    	Tags:  make([]string,0),
+    	Attrs: make(map[string]string),
+    }
+    
+    assert.NotNil(t, parsedHeaders["key1"])
+    
+    query,err := executeHttpHeaders(parsedHeaders, &service)
+    log.Println("Executed template: %v %v", query)
+    assert.Nil(t, err)
+    assert.NotNil(t, query["key1"])
+    assert.Equal(t, "bar", query["key1"])
 }
 

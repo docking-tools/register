@@ -4,7 +4,7 @@
 	"registerUrl": "http://10.98.81.240:8500/v1/kv/tenant_name/Swarm_cluster",
 	"hostIp": "10.98.81.22",
 	"httpHeaders": {
-		"X-Consul-Token": "{{ env CONSUL_TOKEN }}"	
+		"X-Consul-Token": "{{ env \"CONSUL_TOKEN\" }}"	
 	},
 	"templates": {
 		"START,RUNNING": [

@@ -85,12 +85,18 @@ func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) erro
     if (len(tmpls)<1) {
         log.Printf("no template found for event %s %v", strings.ToUpper(status), r.templates)
     }
+    
+    // calcul httpHeader for all query
+    headers,err :=executeHttpHeaders(r.httpHeader, service)
+	if err != nil {
+            return err
+    }
 	for _, tmpl := range tmpls {
 	    query,err :=executeTemplates(tmpl, service)
 	    if err != nil {
             return err
         }
-        err = exectureQuery(r.url, query, tmpl.HttpCmd)  
+        err = exectureQuery(r.url, query, tmpl.HttpCmd, headers)  
         if err != nil {
             return err
         }        
@@ -113,6 +119,20 @@ func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string
     return bufQuery.String(), nil
 }
 
+func executeHttpHeaders(data map[string]*template.Template, service *api.Service) (map[string]string, error) {
+    result := make(map[string]string)
+    for key,value := range data {
+        bufQuery := &bytes.Buffer {}
+         err := value.Execute(bufQuery, service)
+        if err != nil {
+            log.Fatal("Error on execute httpHeader template: %s ", key)
+        } else {
+            result[key] = bufQuery.String()
+        }
+    }
+    return result, nil
+}
+
 func exectureQuery(url string, tmpl string, httpCmd string, httpHeaders map[string]string) error {
         client := &http.Client{}    
         querys := strings.Split(tmpl,"\n")
@@ -128,7 +148,7 @@ func exectureQuery(url string, tmpl string, httpCmd string, httpHeaders map[stri
         if len(path) > 0 {
             request, err := http.NewRequest(httpCmd, url+path, strings.NewReader(value))
             request.ContentLength = int64(len(value))
-            for key,value range httpHeaders {
+            for key,value :=  range httpHeaders {
                 request.Header.Add(key, value)
             }
             response, err := client.Do(request)
