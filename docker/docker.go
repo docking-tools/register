@@ -20,6 +20,7 @@ type DockerRegistry struct {
     docker      *client.Client
     events      <-chan *io.ReadCloser
     config		*config.ConfigFile
+    servicesMap map[string][]*api.Service	// store Key=containerId / Value=List of ServiceName
 }
 
 type DockerServicePort struct {
@@ -109,9 +110,14 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		}
 	
 		services :=  make([]*api.Service,0)
-		services, err = createService(doc.config, &container)
-		if err != nil {
-			closeChan <- err
+		if data, ok := doc.servicesMap[id]; ok {
+			services =data 
+		} else {
+			services, err = createService(doc.config , &container)
+			if err != nil {
+				closeChan <- err
+			}
+			doc.servicesMap[id]=services
 		}
 
 		for _,service := range services {
