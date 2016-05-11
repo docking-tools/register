@@ -22,12 +22,6 @@ func createService(config *config.ConfigFile, container *types.ContainerJSON) ([
 			ports[string(port)] = servicePort(container, port, published)
 		}
 
-	} else {
-		ports["die"] = DockerServicePort{
-			ContainerID:       container.ID,
-			ContainerHostname: container.Config.Hostname,
-			container:         container,
-		}
 	}
 	
     services := make([]*api.Service,0)

@@ -111,16 +111,15 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		}
 	
 		services :=  make([]*api.Service,0)
-		if data, ok := doc.servicesMap[id]; ok {
-			services =data 
+		services, err = createService(doc.config , &container)
+		if err != nil {
+			closeChan <- err
+		}
+		if data, ok := doc.servicesMap[id]; ok && len(services)==0 {
+			services =data
+			delete(doc.servicesMap, id)
 		} else {
-			services, err = createService(doc.config , &container)
-			if err != nil {
-				closeChan <- err
-			}
-			if services != nil {
-				doc.servicesMap[id]=services
-			}
+			doc.servicesMap[id] = services
 		}
 
 		for _,service := range services {
