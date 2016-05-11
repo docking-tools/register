@@ -61,6 +61,7 @@ func New(config *config.ConfigFile) (*DockerRegistry, error) {
         docker:   docker,
         events: nil,
         config: config,
+        servicesMap: make(map[string][]*api.Service),
     }, nil
 }
 
@@ -117,7 +118,9 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 			if err != nil {
 				closeChan <- err
 			}
-			doc.servicesMap[id]=services
+			if services != nil {
+				doc.servicesMap[id]=services
+			}
 		}
 
 		for _,service := range services {
