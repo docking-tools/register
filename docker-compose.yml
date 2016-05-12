@@ -1,7 +1,9 @@
 verison 2
   register:
-    image: 
-    link:
+    image: dockingtools/register:0.0.2
+    links:
       - registry
-  regsitry:
-    images: progrium/consul
+  registry:
+    image: progrium/consul
+  ports:
+   - "8500"
