@@ -1,9 +1,17 @@
 verison 2
+services:
   register:
-    image: dockingtools/register:0.0.2
+    image: 'dockingtools/register:0.0.2'
     links:
       - registry
+    environment:
+      - HOST_IP=
+      - REGISTER_URL=http://registry:8400/v1/kv/
+      - DOCKER_URL=unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
   registry:
-    image: progrium/consul
-  ports:
-   - "8500"
+    command: '-server -bootstrap'
+    image: 'progrium/consul:latest'
+    ports:
+      - '8500'
