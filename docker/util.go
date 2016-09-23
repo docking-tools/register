@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"github.com/docker/engine-api/types"
@@ -28,6 +29,9 @@ func combineTags(tagParts ...string) []string {
 }
 
 func serviceMetaData(config *container.Config, port string) (map[string]string, map[string]bool) {
+
+	serviceRegex := regexp.MustCompile("([^_ .]+|^service+)((^[_.]+))?")
+
 	meta := config.Env
 	for k, v := range config.Labels {
 		meta = append(meta, k+"="+v)
@@ -36,19 +40,22 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 	metadataFromPort := make(map[string]bool)
 	for _, kv := range meta {
 		kvp := strings.SplitN(kv, "=", 2)
-		if strings.HasPrefix(kvp[0], "SERVICE_") && len(kvp) > 1 {
-			key := strings.ToLower(strings.TrimPrefix(kvp[0], "SERVICE_"))
+		match := serviceRegex.FindAllStringSubmatch(kvp[0],-1)
+		
+		if len(match)>=1   && strings.EqualFold(match[0][0], "service") {
+
+			key := match[1][0]
 			if metadataFromPort[key] {
 				continue
 			}
-			portkey := strings.SplitN(key, "_", 2)
-			_, err := strconv.Atoi(portkey[0])
-			if err == nil && len(portkey) > 1 {
-				if portkey[0] != port {
+			portkey, err := strconv.Atoi(match[1][0])
+		//	_, err := strconv.Atoi(portkey[0])
+			if err == nil && portkey > 1 {
+				if match[1][0] != port {
 					continue
 				}
-				metadata[portkey[1]] = kvp[1]
-				metadataFromPort[portkey[1]] = true
+				metadata[match[1][0]] = kvp[1]
+				metadataFromPort[match[1][0]] = true
 			} else {
 				metadata[key] = kvp[1]
 			}
