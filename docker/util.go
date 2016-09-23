@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,9 +29,11 @@ func combineTags(tagParts ...string) []string {
 	return tags
 }
 
+
+
 func serviceMetaData(config *container.Config, port string) (map[string]string, map[string]bool) {
 
-	serviceRegex := regexp.MustCompile("([^_ .]+|^service+)((^[_.]+))?")
+	serviceRegex := regexp.MustCompile("([^_.]+|^service[_.]+)((^[_.]+))?")
 
 	meta := config.Env
 	for k, v := range config.Labels {
@@ -42,7 +45,7 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 		kvp := strings.SplitN(kv, "=", 2)
 		match := serviceRegex.FindAllStringSubmatch(kvp[0],-1)
 		
-		if len(match)>=1   && strings.EqualFold(match[0][0], "service") {
+		if len(match)>=1 && strings.EqualFold("service", match[0][0]){
 
 			key := match[1][0]
 			if metadataFromPort[key] {
@@ -62,6 +65,41 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 		}
 	}
 	return metadata, metadataFromPort
+}
+
+
+type recmap map[string]interface{}
+
+func graphMetaData(config *container.Config, startWith string) recmap {
+	meta := config.Env
+	for k, v := range config.Labels {
+		meta = append(meta, k+"="+v)
+	}
+	
+	metaRegex := regexp.MustCompile("([^_.]+|^${startWith}[_.]+)((^[_.]+))?")
+	
+	nextMap := make(recmap)
+	result :=nextMap
+	for _, kv := range meta {
+		kvp := strings.SplitN(kv, "=", 2)
+		match := metaRegex.FindAllStringSubmatch(kvp[0],-1)
+		if len(match)>=1 && strings.EqualFold(startWith, match[0][0]){  
+		fmt.Printf("%v\n", match)
+			for key := range match[0:len(match)-1] {
+				sKey :=strings.ToLower(match[key][0])
+				if _, ok :=nextMap[sKey]; !ok {
+					nextMap[sKey] = make(recmap)
+				} 
+				nextMap = (nextMap[sKey].(recmap))
+			}
+
+			nextMap[strings.ToLower(match[len(match)-1][0])] = kvp[1]
+			nextMap = result
+				fmt.Printf("result %v\n", result)
+		}
+	}
+	return result
+	
 }
 
 func servicePort(container *types.ContainerJSON, port nat.Port, published []nat.PortBinding) DockerServicePort {

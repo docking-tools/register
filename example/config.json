@@ -11,19 +11,19 @@
 			{
 				"name": "addService",
 				"httpCmd": "PUT",
-				"query": "/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/tags {{$.Tags}}\n"
+				"query": "{{range .Services}}/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{$.Port}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/tags {{$.Tags}}\n{{end}}"
 			},
 			{
 				"name": "addAttr",
 				"httpCmd": "PUT",
-				"query": "{{$ServName := .Name}}{{$ServVersion := .Version}}{{range $key, $value := .Attrs }}/services/{{$ServName}}/{{$ServVersion}}/{{$key}} {{$value}}\n{{end}}"
+				"query": "{{range .Services}}{{$ServName := .Name}}{{$ServVersion := .Version}}{{range $key, $value := .Attrs }}/services/{{$ServName}}/{{$ServVersion}}/{{$key}} {{$value}}\n{{end}}\n{{end}}"
 			}
 		],
 		"DIE": [
 			{
 				"name": "deleteNode",
 				"httpCmd": "DELETE",
-				"query": "/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}?recurse\n"
+				"query": "{{range .Services}}/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}?recurse\n{{end}}"
 			}
 		]			
 	}

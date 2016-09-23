@@ -78,7 +78,7 @@ func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) map[string][]*
 	return confTmpl
 }
 
-func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) error {
+func (r *TemplateRegistry) RunTemplate(status string, object interface{}) error {
     tmpls := []*config.ConfigTemplate {}
     tmpls = append(tmpls, r.templates[strings.ToUpper(status)]...)
     tmpls = append(tmpls, r.templates["ALL"]...) 
@@ -87,12 +87,12 @@ func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) erro
     }
     
     // calcul httpHeader for all query
-    headers,err :=executeHttpHeaders(r.httpHeader, service)
+    headers,err :=executeHttpHeaders(r.httpHeader, object)
 	if err != nil {
             return err
     }
 	for _, tmpl := range tmpls {
-	    query,err :=executeTemplates(tmpl, service)
+	    query,err :=executeTemplates(tmpl, object)
 	    if err != nil {
             return err
         }
@@ -105,12 +105,12 @@ func (r *TemplateRegistry) RunTemplate(status string, service *api.Service) erro
 	return nil    
 }
 
-func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string,error) {
+func executeTemplates(conf *config.ConfigTemplate, object interface{}) (string,error) {
     bufQuery := &bytes.Buffer {}
-    // Execute the template with the service as the data item
+    // Execute the template with the object as the data item
     bufQuery.Reset()
 
-    err := conf.Tmpl().Execute(bufQuery, service)
+    err := conf.Tmpl().Execute(bufQuery, object)
     if err != nil {
         return "", err
     }
@@ -119,11 +119,11 @@ func executeTemplates(conf *config.ConfigTemplate, service *api.Service) (string
     return bufQuery.String(), nil
 }
 
-func executeHttpHeaders(data map[string]*template.Template, service *api.Service) (map[string]string, error) {
+func executeHttpHeaders(data map[string]*template.Template, object interface{}) (map[string]string, error) {
     result := make(map[string]string)
     for key,value := range data {
         bufQuery := &bytes.Buffer {}
-         err := value.Execute(bufQuery, service)
+         err := value.Execute(bufQuery, object)
         if err != nil {
             log.Fatal("Error on execute httpHeader template: %s ", key)
         } else {
