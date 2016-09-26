@@ -148,12 +148,13 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		if (status=="") {
 			status =container.State.Status
 		}
+		log.Printf("++++ %v %v", status, container)
 		instance := api.Instance {
 			Services :parseService(doc.config, &container,status),
 		    MetaDataGraph :parseHierarchicalMetadata(doc.config, &container,status),
 		    Container: container,
 		}
-		
+		log.Printf("++++ %v ", instance)
 		go ep(status, instance, closeChan)
 	}	
 	// getContainerList simulates creation event for all previously existing

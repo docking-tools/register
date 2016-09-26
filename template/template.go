@@ -86,7 +86,7 @@ func (r *TemplateRegistry) RunTemplate(status string, object interface{}) error 
     if (len(tmpls)<1) {
         log.Printf("no template found for event %s %v", strings.ToUpper(status), r.templates)
     }
-    
+	    log.Printf("----- %v %v", tmpls, object)    
     // calcul httpHeader for all query
     headers,err :=executeHttpHeaders(r.httpHeader, object)
 	if err != nil {
