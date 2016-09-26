@@ -3,6 +3,7 @@ package template
 import (
     "bytes"
     "errors"
+    "fmt"
     "io/ioutil"
     "log"
     "net/url"
@@ -92,9 +93,13 @@ func (r *TemplateRegistry) RunTemplate(status string, object interface{}) error 
             return err
     }
 	for _, tmpl := range tmpls {
+	    log.Printf("**** %v %v", tmpl, object)
 	    query,err :=executeTemplates(tmpl, object)
 	    if err != nil {
             return err
+        }
+        if len(query)==0 {
+            return fmt.Errorf("No Query generated for %s / %v", status, object)
         }
         err = exectureQuery(r.url, query, tmpl.HttpCmd, headers)  
         if err != nil {
@@ -136,6 +141,7 @@ func executeHttpHeaders(data map[string]*template.Template, object interface{}) 
 func exectureQuery(url string, tmpl string, httpCmd string, httpHeaders map[string]string) error {
         client := &http.Client{}    
         querys := strings.Split(tmpl,"\n")
+
 
     for _,query := range querys {        
         queryTab := strings.SplitN(query, " ", 2)
