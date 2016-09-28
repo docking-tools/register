@@ -9,7 +9,6 @@ import (
 	"github.com/docker/engine-api/types/container"
 	api "github.com/docking-tools/register/api"
 	"github.com/docker/go-connections/nat"
-	"log"
 )
 
 func mapDefault(m map[string]string, key, default_ string) string {
@@ -62,10 +61,9 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 				for toto := range match[2:] {
 
 					keys = append(keys, match[2+toto][0])
-					log.Printf("yyy %#v %#v", toto, keys)
 				}
-				metadata[strings.Join(keys,".")] = kvp[1]
-				metadataFromPort[strings.Join(keys,".")] = true
+				metadata[strings.ToLower(strings.Join(keys,"."))] = kvp[1]
+				metadataFromPort[strings.ToLower(strings.Join(keys,"."))] = true
 
 			} else {
 				keys := make([]string,0)
@@ -73,8 +71,7 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 
 					keys = append(keys, match[1 + toto][0])
 				}
-				log.Printf("xxx %#v", match[1:][:])
-				metadata[strings.Join(keys,".")] = kvp[1]
+				metadata[strings.ToLower(strings.Join(keys,"."))] = kvp[1]
 			}
 		}
 	}

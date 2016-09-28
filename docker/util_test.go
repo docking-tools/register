@@ -3,24 +3,25 @@ package docker
 import (
 	"testing"
 	"github.com/docker/engine-api/types/container"
+	"strings"
 )
 
-func TestServiceMetadata(t *testing.T) {
+func TestServiceMetadataSSS(t *testing.T) {
 	config := container.Config {
 		Labels : make(map[string]string),
 		Env : make([]string, 1),
 	}
 
-	config.Labels["service.name"]="test1"
-	config.Labels["service.8080.name"]="ok-port"
-	config.Labels["service.ignore"]="true"
+	config.Labels["SERVICE.NAME"]="test1"
+	config.Labels["service_8080_name"]="ok-port"
+	config.Labels["SERVICE_ignore"]="true"
 
-	config.Labels["Service.8A.test"]="ko"
+	config.Labels["service.8A_test"]="ko"
 
 	config.Labels["service_test"]="ok"
 	config.Labels["test_service_test"]="ko"
 
-	config.Env[0]="SERVICE_TEST=ok"
+	config.Env[0]="SERVICE.TEST=ok"
 
 	metadata, metaFromPort :=  serviceMetaData(&config, "8080")
 
@@ -29,14 +30,22 @@ func TestServiceMetadata(t *testing.T) {
 
 	ignore := mapDefault(metadata,"ignore","")
 	t.Log("%#v", ignore)
+
+
 	if len(metadata)!=4 {
 		t.Fatal("Number of result MetaData is not 4")
 	}
-	//if metaFromPort["8080"]
+	if !metaFromPort["name"] {
+		t.Fatal("mettaFromPort for key name can be true")
+	}
+	if !strings.EqualFold(metadata["ignore"],"true") {
+		t.Fatal("mettadata for key 'ignore' can be true")
+	}
+
 
 	if len(metaFromPort) !=1 {
 		t.Fatal("Number of result MetaFromPort is not 1")
-	}	
+	}
 }
 
 func TestGraphMetaData(t *testing.T) {
@@ -56,7 +65,6 @@ func TestGraphMetaData(t *testing.T) {
 
 	result  :=  graphMetaData(&config, "cron")
 
-	t.Log("%v", result)
 
 	if len(result)!=1 {
 		t.Fatal("Number of result MetaData is not 1")
