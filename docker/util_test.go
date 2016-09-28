@@ -11,10 +11,12 @@ func TestServiceMetadata(t *testing.T) {
 		Env : make([]string, 1),
 	}
 
-	config.Labels["service.test"]="ok"
-	config.Labels["service.8080.test"]="ok-port"
+	config.Labels["service.name"]="test1"
+	config.Labels["service.8080.name"]="ok-port"
+	config.Labels["service.ignore"]="true"
 
 	config.Labels["Service.8A.test"]="ko"
+
 	config.Labels["service_test"]="ok"
 	config.Labels["test_service_test"]="ko"
 
@@ -23,10 +25,14 @@ func TestServiceMetadata(t *testing.T) {
 	metadata, metaFromPort :=  serviceMetaData(&config, "8080")
 
 	t.Log("%v", metadata)
+	t.Log("%v", metaFromPort)
 
+	ignore := mapDefault(metadata,"ignore","")
+	t.Log("%#v", ignore)
 	if len(metadata)!=4 {
 		t.Fatal("Number of result MetaData is not 4")
 	}
+	//if metaFromPort["8080"]
 
 	if len(metaFromPort) !=1 {
 		t.Fatal("Number of result MetaFromPort is not 1")

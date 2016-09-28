@@ -65,6 +65,7 @@ func main () {
    docker.Start(func(status string, object interface{}, closeChan chan error) error {
 			err := client.RunTemplate(status, object)
 			if err != nil {
+				log.Printf("Error on RunTemplate %v", err)
 				closeChan <- err
 				return nil
 			}
