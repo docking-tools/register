@@ -5,6 +5,7 @@ import (
 
 type EventProcessor func(status string, object interface{}, closeChan chan error) error
 
+type Recmap map[string]interface{}
 type RegistryAdapter interface {
     RunTemplate(status string, object interface{}) error
 

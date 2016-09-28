@@ -17,6 +17,11 @@
 				"name": "addAttr",
 				"httpCmd": "PUT",
 				"query": "{{range .Services}}{{$ServName := .Name}}{{$ServVersion := .Version}}{{range $key, $value := .Attrs }}/services/{{$ServName}}/{{$ServVersion}}/{{$key}} {{$value}}\n{{end}}\n{{end}}"
+			},
+			{
+				"name": "addCron",
+				"httpCmd": "PUT",
+				"query": "{{ range $key, $val := (convertGraphTopath .MetaDataGraph)}}{{$key}} {{$val}}\n{{end}}"
 			}
 		],
 		"DIE": [

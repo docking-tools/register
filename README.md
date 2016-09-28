@@ -29,3 +29,10 @@ Reads the given environment variable accessible to the current process.
 This function can be chained to manipulate the output:
 
 {{env "CLUSTER_ID" | toLower}}
+
+### convertGraphTopath
+
+Read MetadataGraph and convert them to map key=URL_Path value
+```
+{{ range $key, $val := (convertGraphTopath .MetaDataGraph)}}{{$key}} {{$val}}\n{{end}}
+```

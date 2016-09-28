@@ -21,7 +21,7 @@ type DockerRegistry struct {
     events      <-chan *io.ReadCloser
     config		*config.ConfigFile
     servicesMap map[string][]*api.Service				// store Key=containerId / Value=List of ServiceName
-    graphMetaMap map[string]recmap	//  store Key=containerId / Value=List of Graph
+    graphMetaMap map[string]api.Recmap	//  store Key=containerId / Value=List of Graph
 }
 
 type DockerServicePort struct {
@@ -63,7 +63,7 @@ func New(config *config.ConfigFile) (*DockerRegistry, error) {
         events: nil,
         config: config,
         servicesMap: make(map[string][]*api.Service),
-        graphMetaMap: make(map[string]recmap),
+        graphMetaMap: make(map[string]api.Recmap),
     }, nil
 }
 
@@ -123,9 +123,9 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 	
 	}
 	
-	parseHierarchicalMetadata := func(config *config.ConfigFile, container *types.ContainerJSON , status string) recmap {
+	parseHierarchicalMetadata := func(config *config.ConfigFile, container *types.ContainerJSON , status string) api.Recmap {
 		
-		graph := make(recmap)
+		graph := make(api.Recmap)
 		graph = graphMetaData(container.Config,"cron")
 		if data, ok := doc.graphMetaMap[container.ID]; ok && len(graph)==0 {
 			graph = data

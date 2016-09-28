@@ -79,9 +79,9 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 }
 
 
-type recmap map[string]interface{}
 
-func graphMetaData(config *container.Config, startWith string) recmap {
+
+func graphMetaData(config *container.Config, startWith string) api.Recmap {
 	meta := config.Env
 	for k, v := range config.Labels {
 		meta = append(meta, k+"="+v)
@@ -89,7 +89,7 @@ func graphMetaData(config *container.Config, startWith string) recmap {
 	
 	metaRegex := regexp.MustCompile("([^_.]+|^${startWith}[_.]+)((^[_.]+))?")
 	
-	nextMap := make(recmap)
+	nextMap := make(api.Recmap)
 	result :=nextMap
 	for _, kv := range meta {
 		kvp := strings.SplitN(kv, "=", 2)
@@ -99,9 +99,9 @@ func graphMetaData(config *container.Config, startWith string) recmap {
 			for key := range match[0:len(match)-1] {
 				sKey :=strings.ToLower(match[key][0])
 				if _, ok :=nextMap[sKey]; !ok {
-					nextMap[sKey] = make(recmap)
+					nextMap[sKey] = make(api.Recmap)
 				} 
-				nextMap = (nextMap[sKey].(recmap))
+				nextMap = (nextMap[sKey].(api.Recmap))
 			}
 
 			nextMap[strings.ToLower(match[len(match)-1][0])] = kvp[1]
