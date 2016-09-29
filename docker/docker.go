@@ -1,26 +1,26 @@
 package docker
 
 import (
-	"encoding/json"
+	"os"
+	"time"
+	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/types/filters"
+	eventtypes "github.com/docker/engine-api/types/events"
+	"golang.org/x/net/context"
+	api "github.com/docking-tools/register/api"
+	"github.com/docking-tools/register/config"
+	"log"
 	"io"
-    "log"
-    "os"
-    "time"
-    "github.com/docker/engine-api/client"
-    "github.com/docker/engine-api/types"
-    "github.com/docker/engine-api/types/filters"
-    eventtypes "github.com/docker/engine-api/types/events"
-    "golang.org/x/net/context"
-    api "github.com/docking-tools/register/api"
-    "github.com/docking-tools/register/config"
-    
+	"encoding/json"
 )
 
 type DockerRegistry struct {
     docker      *client.Client
     events      <-chan *io.ReadCloser
     config		*config.ConfigFile
-    servicesMap map[string][]*api.Service	// store Key=containerId / Value=List of ServiceName
+    servicesMap map[string][]*api.Service				// store Key=containerId / Value=List of ServiceName
+    graphMetaMap map[string]api.Recmap	//  store Key=containerId / Value=List of Graph
 }
 
 type DockerServicePort struct {
@@ -62,6 +62,7 @@ func New(config *config.ConfigFile) (*DockerRegistry, error) {
         events: nil,
         config: config,
         servicesMap: make(map[string][]*api.Service),
+        graphMetaMap: make(map[string]api.Recmap),
     }, nil
 }
 
@@ -100,7 +101,43 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		}
 	}
 
-	parseService := func(id string, status string) {
+
+
+	parseService := func(config *config.ConfigFile, container *types.ContainerJSON , status string) []*api.Service {
+
+	
+		services :=  make([]*api.Service,0)
+		services, err := createService(config , container)
+		if err != nil {
+			closeChan <- err
+		}
+		if data, ok := doc.servicesMap[container.ID]; ok && len(services)==0 {
+			services =data
+			delete(doc.servicesMap, container.ID)
+		} else {
+			doc.servicesMap[container.ID] = services
+		}
+
+		return services
+	
+	}
+	
+	parseHierarchicalMetadata := func(config *config.ConfigFile, container *types.ContainerJSON , status string) api.Recmap {
+		
+		graph := make(api.Recmap)
+		graph = graphMetaData(container.Config)
+		if data, ok := doc.graphMetaMap[container.ID]; ok && len(graph)==0 {
+			graph = data
+			delete(doc.graphMetaMap, container.ID)
+		} else {
+			doc.graphMetaMap[container.ID] = graph
+		}
+		return graph
+		
+	}
+
+
+	parseContainer := func(id string, status string) {
 		container, err := doc.docker.ContainerInspect(context.Background(), id)
 		if err != nil {
 			closeChan <- err
@@ -109,26 +146,13 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		if (status=="") {
 			status =container.State.Status
 		}
-	
-		services :=  make([]*api.Service,0)
-		services, err = createService(doc.config , &container)
-		if err != nil {
-			closeChan <- err
+		instance := api.Instance {
+			Services :parseService(doc.config, &container,status),
+		    MetaDataGraph :parseHierarchicalMetadata(doc.config, &container,status),
+		    Container: container,
 		}
-		if data, ok := doc.servicesMap[id]; ok && len(services)==0 {
-			services =data
-			delete(doc.servicesMap, id)
-		} else {
-			doc.servicesMap[id] = services
-		}
-
-		for _,service := range services {
-			go ep(status, service , closeChan)
-		}
-	
+		go ep(status, instance, closeChan)
 	}	
-
-	
 	// getContainerList simulates creation event for all previously existing
 	// containers.
 	getContainerList := func() {
@@ -140,7 +164,7 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 			closeChan <- err
 		}
 		for _, container := range cs {
-			parseService(container.ID, container.State)
+			parseContainer(container.ID, container.State)
 		}
 	}
 	
@@ -148,7 +172,7 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 	eh := eventHandler{handlers: make(map[string]func(eventtypes.Message))}
 		eh.Handle("*", func(e eventtypes.Message) {
 			log.Printf("new event %v id: %v",e.Status,e.ID)
-			parseService(e.ID, e.Status)
+			parseContainer(e.ID, e.Status)
 		})
 	
 	

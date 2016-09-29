@@ -28,9 +28,11 @@ func combineTags(tagParts ...string) []string {
 	return tags
 }
 
+
+
 func serviceMetaData(config *container.Config, port string) (map[string]string, map[string]bool) {
 
-	serviceRegex := regexp.MustCompile("([^_ .]+|^service+)((^[_.]+))?")
+	serviceRegex := regexp.MustCompile("([^_.]+|^service[_.]+)((^[_.]+))?")
 
 	meta := config.Env
 	for k, v := range config.Labels {
@@ -42,7 +44,7 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 		kvp := strings.SplitN(kv, "=", 2)
 		match := serviceRegex.FindAllStringSubmatch(kvp[0],-1)
 		
-		if len(match)>=1   && strings.EqualFold(match[0][0], "service") {
+		if len(match)>=1 && strings.EqualFold("service", match[0][0]){
 
 			key := match[1][0]
 			if metadataFromPort[key] {
@@ -54,14 +56,56 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 				if match[1][0] != port {
 					continue
 				}
-				metadata[match[1][0]] = kvp[1]
-				metadataFromPort[match[1][0]] = true
+				keys := make([]string,0)
+				for toto := range match[2:] {
+
+					keys = append(keys, match[2+toto][0])
+				}
+				metadata[strings.ToLower(strings.Join(keys,"."))] = kvp[1]
+				metadataFromPort[strings.ToLower(strings.Join(keys,"."))] = true
+
 			} else {
-				metadata[key] = kvp[1]
+				keys := make([]string,0)
+				for toto := range match[1:] {
+
+					keys = append(keys, match[1 + toto][0])
+				}
+				metadata[strings.ToLower(strings.Join(keys,"."))] = kvp[1]
 			}
 		}
 	}
 	return metadata, metadataFromPort
+}
+
+
+
+
+func graphMetaData(config *container.Config) api.Recmap {
+	meta := config.Env
+	for k, v := range config.Labels {
+		meta = append(meta, k + "=" + v)
+	}
+	metaRegex := regexp.MustCompile("[_.]")
+
+	//var nextMap interface{}
+	nextMap := make(api.Recmap)
+	result :=nextMap
+	for _, kv := range meta {
+		kvp := strings.SplitN(kv, "=", 2)
+		match := metaRegex.Split(kvp[0], -1)
+		for _, key := range match[:len(match)-1] {
+			sKey :=strings.ToLower(key)
+			if _, ok :=nextMap[sKey].(api.Recmap); !ok  {
+				nextMap[sKey] = make(api.Recmap)
+			}
+			nextMap = nextMap[sKey].(api.Recmap)
+
+		}
+		nextMap[match[len(match)-1]]=kvp[1]
+		nextMap = result
+	}
+	return result
+	
 }
 
 func servicePort(container *types.ContainerJSON, port nat.Port, published []nat.PortBinding) DockerServicePort {

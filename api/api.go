@@ -3,11 +3,20 @@ package api
 import (
 )
 
-type EventProcessor func(status string, service *Service, closeChan chan error) error
+type EventProcessor func(status string, object interface{}, closeChan chan error) error
 
+type Recmap map[string]interface{}
 type RegistryAdapter interface {
-    RunTemplate(status string, service *Service) error
+    RunTemplate(status string, object interface{}) error
 
+}
+
+
+type Instance struct {
+	Container interface{}
+	Services []*Service
+	MetaDataGraph map[string]interface{}
+	
 }
 
 type Service struct {
@@ -19,8 +28,6 @@ type Service struct {
 	Tags  []string
 	Attrs map[string]string
 	TTL   int
-	Container struct{}
-
 	Origin ServicePort
 }
 
