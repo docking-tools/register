@@ -1,7 +1,7 @@
 FROM debian
 
-ENV REGISTRY_VERSION 0.0.4-beta
-ENV BIN_URL https://github.com/docking-tools/register/releases/download/0.0.4-beta/register
+ENV REGISTER_VERSION 0.0.4
+ENV BIN_URL https://github.com/docking-tools/register/releases/download/0.0.4/register
 
 COPY example/config.json /register/config.json
 
