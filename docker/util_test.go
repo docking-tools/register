@@ -3,6 +3,7 @@ package docker
 import (
 	"testing"
 	"github.com/docker/engine-api/types/container"
+	"github.com/docking-tools/register/api"
 	"strings"
 )
 
@@ -54,23 +55,31 @@ func TestGraphMetaData(t *testing.T) {
 		Env : make([]string, 1),
 	}
 
-	config.Labels["cron.test"]="ok"
+	config.Labels["cron.test.titi"]="ok"
+	config.Labels["cron.test"]="KO"
+
+	config.Labels["cron.test.tutu"]="ok"
 	config.Labels["cron.8080.test"]="ok-port"
 
 	config.Labels["crone.8A.test"]="ko"
-	config.Labels["cron_test"]="ok"
-	config.Labels["test_cron_test"]="ko"
-
-	config.Env[0]="CRON_TEST=ok"
-
-	result  :=  graphMetaData(&config, "cron")
+	config.Labels["cron_test.toto.tata"]="ok"
+	config.Env[0]="test_cron=ok"
 
 
-	if len(result)!=1 {
-		t.Fatal("Number of result MetaData is not 1")
+	result  :=  graphMetaData(&config)
+	t.Logf("%v", result)
+
+	if len(result)!=3 {
+		t.Fatal("Number of result MetaData is not 3 %v", result)
 	}
 
-	if len(result["cron"].(recmap)) !=2 {
-		t.Fatal("Number of result MetaFromPort is not 1")
-	}	
+	if len(result["cron"].(api.Recmap)) !=2 {
+		t.Fatal("Number of result MEtaData is not 1 %v", result["cron"].(api.Recmap))
+	}
+	if result["test"].(api.Recmap)["cron"]!="ok" {
+		t.Fatal("cron.test not equals to ok", result["cron"].(api.Recmap)["test"])
+	}
+	if result["cron"].(api.Recmap)["test"].(api.Recmap)["tutu"]!="ok" {
+		t.Fatal("cron.test.tutu not equals to ok", result["cron"].(api.Recmap)["test"])
+	}
 }

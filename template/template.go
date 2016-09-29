@@ -26,6 +26,7 @@ type TemplateRegistry struct {
 var funcs = map[string]interface{}{
 	"env": env,
 	"convertGraphTopath": convertGraphTopath,
+	"listPathfromGraph": listPathfromGraph,
 }
 
 func NewTemplate(config *config.ConfigFile) (api.RegistryAdapter, error) {

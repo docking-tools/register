@@ -21,15 +21,22 @@
 			{
 				"name": "addCron",
 				"httpCmd": "PUT",
-				"query": "{{ range $key, $val := (convertGraphTopath .MetaDataGraph)}}{{$key}} {{$val}}\n{{end}}"
+				"query": "{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"cron\"))}}/cron{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"cron\"))}}/cron{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
 			}
+
 		],
 		"DIE": [
 			{
 				"name": "deleteNode",
 				"httpCmd": "DELETE",
 				"query": "{{range .Services}}/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}?recurse\n{{end}}"
+			},
+			{
+				"name": "deleteNode",
+				"httpCmd": "DELETE",
+				"query": "{{ range $path := (listPathfromGraph .MetaDataGraph)}}{{$path}}/node/{{.id}}?recurse\n{{end}}"
 			}
-		]			
+
+		]
 	}
 }

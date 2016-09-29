@@ -1,19 +1,18 @@
 package docker
 
 import (
-	"encoding/json"
+	"os"
+	"time"
+	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/types/filters"
+	eventtypes "github.com/docker/engine-api/types/events"
+	"golang.org/x/net/context"
+	api "github.com/docking-tools/register/api"
+	"github.com/docking-tools/register/config"
+	"log"
 	"io"
-    "log"
-    "os"
-    "time"
-    "github.com/docker/engine-api/client"
-    "github.com/docker/engine-api/types"
-    "github.com/docker/engine-api/types/filters"
-    eventtypes "github.com/docker/engine-api/types/events"
-    "golang.org/x/net/context"
-    api "github.com/docking-tools/register/api"
-    "github.com/docking-tools/register/config"
-    
+	"encoding/json"
 )
 
 type DockerRegistry struct {
@@ -126,14 +125,13 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 	parseHierarchicalMetadata := func(config *config.ConfigFile, container *types.ContainerJSON , status string) api.Recmap {
 		
 		graph := make(api.Recmap)
-		graph = graphMetaData(container.Config,"cron")
+		graph = graphMetaData(container.Config)
 		if data, ok := doc.graphMetaMap[container.ID]; ok && len(graph)==0 {
 			graph = data
 			delete(doc.graphMetaMap, container.ID)
 		} else {
 			doc.graphMetaMap[container.ID] = graph
 		}
-		
 		return graph
 		
 	}

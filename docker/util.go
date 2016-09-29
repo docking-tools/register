@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -81,33 +80,29 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 
 
 
-func graphMetaData(config *container.Config, startWith string) api.Recmap {
+func graphMetaData(config *container.Config) api.Recmap {
 	meta := config.Env
 	for k, v := range config.Labels {
-		meta = append(meta, k+"="+v)
+		meta = append(meta, k + "=" + v)
 	}
-	
-	metaRegex := regexp.MustCompile("([^_.]+|^${startWith}[_.]+)((^[_.]+))?")
-	
+	metaRegex := regexp.MustCompile("[_.]")
+
+	//var nextMap interface{}
 	nextMap := make(api.Recmap)
 	result :=nextMap
 	for _, kv := range meta {
 		kvp := strings.SplitN(kv, "=", 2)
-		match := metaRegex.FindAllStringSubmatch(kvp[0],-1)
-		if len(match)>=1 && strings.EqualFold(startWith, match[0][0]){  
-		fmt.Printf("%v\n", match)
-			for key := range match[0:len(match)-1] {
-				sKey :=strings.ToLower(match[key][0])
-				if _, ok :=nextMap[sKey]; !ok {
-					nextMap[sKey] = make(api.Recmap)
-				} 
-				nextMap = (nextMap[sKey].(api.Recmap))
+		match := metaRegex.Split(kvp[0], -1)
+		for _, key := range match[:len(match)-1] {
+			sKey :=strings.ToLower(key)
+			if _, ok :=nextMap[sKey].(api.Recmap); !ok  {
+				nextMap[sKey] = make(api.Recmap)
 			}
+			nextMap = nextMap[sKey].(api.Recmap)
 
-			nextMap[strings.ToLower(match[len(match)-1][0])] = kvp[1]
-			nextMap = result
-				fmt.Printf("result %v\n", result)
 		}
+		nextMap[match[len(match)-1]]=kvp[1]
+		nextMap = result
 	}
 	return result
 	
