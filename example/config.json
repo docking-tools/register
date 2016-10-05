@@ -32,9 +32,9 @@
 				"query": "{{range .Services}}/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}?recurse\n{{end}}"
 			},
 			{
-				"name": "deleteNode",
+				"name": "deleteNodeCron",
 				"httpCmd": "DELETE",
-				"query": "{{ range $path := (listPathfromGraph .MetaDataGraph)}}{{$path}}/node/{{.id}}?recurse\n{{end}}"
+				"query": "{{ range $path := (listPathfromGraph .MetaDataGraph)}}{{$path}}/node/{{$.Container.ID}}?recurse\n{{end}}"
 			}
 
 		]
