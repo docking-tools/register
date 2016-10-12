@@ -92,17 +92,19 @@ func graphMetaData(config *container.Config) api.Recmap {
 	result :=nextMap
 	for _, kv := range meta {
 		kvp := strings.SplitN(kv, "=", 2)
-		match := metaRegex.Split(kvp[0], -1)
-		for _, key := range match[:len(match)-1] {
-			sKey :=strings.ToLower(key)
-			if _, ok :=nextMap[sKey].(api.Recmap); !ok  {
-				nextMap[sKey] = make(api.Recmap)
-			}
-			nextMap = nextMap[sKey].(api.Recmap)
+		if len(kvp)>=2 {
+			match := metaRegex.Split(kvp[0], -1)
+			for _, key := range match[:len(match)-1] {
+				sKey :=strings.ToLower(key)
+				if _, ok :=nextMap[sKey].(api.Recmap); !ok  {
+					nextMap[sKey] = make(api.Recmap)
+				}
+				nextMap = nextMap[sKey].(api.Recmap)
 
+			}
+			nextMap[match[len(match)-1]]=kvp[1]
+			nextMap = result
 		}
-		nextMap[match[len(match)-1]]=kvp[1]
-		nextMap = result
 	}
 	return result
 	

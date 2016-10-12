@@ -64,7 +64,7 @@ func TestGraphMetaData(t *testing.T) {
 	config.Labels["crone.8A.test"]="ko"
 	config.Labels["cron_test.toto.tata"]="ok"
 	config.Env[0]="test_cron=ok"
-
+	config.Env[1]="sans_valeur"
 
 	result  :=  graphMetaData(&config)
 	t.Logf("%v", result)
