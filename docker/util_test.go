@@ -52,7 +52,7 @@ func TestServiceMetadataSSS(t *testing.T) {
 func TestGraphMetaData(t *testing.T) {
 	config := container.Config {
 		Labels : make(map[string]string),
-		Env : make([]string, 1),
+		Env : make([]string, 2),
 	}
 
 	config.Labels["cron.test.titi"]="ok"
