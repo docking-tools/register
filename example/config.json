@@ -26,7 +26,7 @@
 			{
 				"name": "addBackup",
 				"httpCmd": "PUT",
-				"query": "{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"backup\"))}}/backup{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"cron\"))}}/cron{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
+				"query": "{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"backup\"))}}/backup{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"backup\"))}}/backup{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
 			}
 
 		],
