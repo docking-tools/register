@@ -22,6 +22,11 @@
 				"name": "addCron",
 				"httpCmd": "PUT",
 				"query": "{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"cron\"))}}/cron{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"cron\"))}}/cron{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
+			},
+			{
+				"name": "addBackup",
+				"httpCmd": "PUT",
+				"query": "{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"backup\"))}}/backup{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"cron\"))}}/cron{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
 			}
 
 		],
