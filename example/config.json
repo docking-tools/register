@@ -1,47 +1,66 @@
 {
-	"LogLevel": "debug",
-	"dockerUrl": "tcp://192.168.11.65:2375",
-	"registerUrl": "http://10.98.81.240:8500/v1/kv/tenant_name/Swarm_cluster",
-	"hostIp": "10.98.81.22",
-	"httpHeaders": {
-		"X-Consul-Token": "{{ env \"CONSUL_TOKEN\" }}"	
-	},
-	"templates": {
-		"START,RUNNING": [
-			{
-				"name": "addService",
-				"httpCmd": "PUT",
-				"query": "{{range .Services}}/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{.Port}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/tags {{.Tags}}\n{{end}}"
-			},
-			{
-				"name": "addAttr",
-				"httpCmd": "PUT",
-				"query": "{{range .Services}}{{$ServName := .Name}}{{$ServVersion := .Version}}{{range $key, $value := .Attrs }}/services/{{$ServName}}/{{$ServVersion}}/{{$key}} {{$value}}\n{{end}}\n{{end}}"
-			},
-			{
-				"name": "addCron",
-				"httpCmd": "PUT",
-				"query": "{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"cron\"))}}/cron{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"cron\"))}}/cron{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
-			},
-			{
-				"name": "addBackup",
-				"httpCmd": "PUT",
-				"query": "{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"backup\"))}}/backup{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"cron\"))}}/cron{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
-			}
-
-		],
-		"DIE": [
-			{
-				"name": "deleteNode",
-				"httpCmd": "DELETE",
-				"query": "{{range .Services}}/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}?recurse\n{{end}}"
-			},
-			{
-				"name": "deleteNodeCron",
-				"httpCmd": "DELETE",
-				"query": "{{ range $path := (listPathfromGraph .MetaDataGraph)}}{{$path}}/node/{{$.Container.ID}}?recurse\n{{end}}"
-			}
-
-		]
-	}
+  "LogLevel":"debug",
+  "dockerUrl":"tcp://10.206.2.54:2375",
+  "hostIp":"10.206.2.54",
+  "targets":[
+    {
+      "name":"consul",
+      "url":"http://registry:8500/v1/kv/tenant_name/Swarm_cluster",
+      "httpHeaders":{
+        "X-Consul-Token":"{{ env \"CONSUL_TOKEN\" }}"
+      },
+      "templates":{
+        "START,RUNNING":[
+          {
+            "name":"addService",
+            "httpCmd":"PUT",
+            "query":"{{range .Services}}/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/ip {{.IP}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/port {{.Port}}\n/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}/tags {{.Tags}}\n{{end}}"
+          },
+          {
+            "name":"addAttr",
+            "httpCmd":"PUT",
+            "query":"{{range .Services}}{{$ServName := .Name}}{{$ServVersion := .Version}}{{range $key, $value := .Attrs }}/services/{{$ServName}}/{{$ServVersion}}/{{$key}} {{$value}}\n{{end}}\n{{end}}"
+          },
+          {
+            "name":"addCron",
+            "httpCmd":"PUT",
+            "query":"{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"cron\"))}}/cron{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"cron\"))}}/cron{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
+          },
+          {
+            "name": "addBackup",
+            "httpCmd": "PUT",
+            "query": "{{ range $key, $val := (convertGraphTopath (index .MetaDataGraph \"backup\"))}}/backup{{$key}} {{$val}}\n{{end}}{{ range $path := (listPathfromGraph (index .MetaDataGraph \"cron\"))}}/cron{{$path}}/node/{{$.Container.ID}} {{$.Container.Name}}\n{{end}}"
+          }
+        ],
+        "DIE":[
+          {
+            "name":"deleteNode",
+            "httpCmd":"DELETE",
+            "query":"{{range .Services}}/services/{{.Name}}/{{.Version}}/nodes/{{.ID}}?recurse\n{{end}}"
+          },
+          {
+            "name":"deleteNodeCron",
+            "httpCmd":"DELETE",
+            "query":"{{ range $path := (listPathfromGraph .MetaDataGraph)}}{{$path}}/node/{{$.Container.ID}}?recurse\n{{end}}"
+          }
+        ]
+      }
+    },
+    {
+      "name":"graphite",
+      "url":"https://preproduction.dashboard.bigdata.vsct.fr/graphite/",
+      "httpHeaders":{
+        "X-Consul-Token":"{{ env \"CONSUL_TOKEN\" }}"
+      },
+      "templates":{
+        "ALL":[
+          {
+            "name":"addEvent",
+            "httpCmd":"POST",
+            "query":" {events/ \"what\": \"Docker Event  {{.Container.Name}} - {{.Status}}\", \"tags\": [\"container-{{.Status}}\",\"docker\"], \"data\": \"Docker container {{.Container.Name}} status chaned to {{.Status}}\" }"
+          }
+        ]
+      }
+    }
+  ]
 }

@@ -18,9 +18,9 @@ import (
 
 type TemplateRegistry struct {
 	api.RegistryAdapter
+	target *config.ConfigTarget
 	templates  map[string][]*config.ConfigTemplate
 	httpHeader map[string]*template.Template
-	url        string // uri path
 }
 
 var funcs = map[string]interface{}{
@@ -29,8 +29,9 @@ var funcs = map[string]interface{}{
 	"listPathfromGraph": listPathfromGraph,
 }
 
-func NewTemplate(config *config.ConfigFile) (api.RegistryAdapter, error) {
-	u, err := url.ParseRequestURI(config.RegisterUrl)
+func NewTemplate(config *config.ConfigTarget) (api.RegistryAdapter, error) {
+
+	_, err := url.ParseRequestURI(config.Url)
 
 	if err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func NewTemplate(config *config.ConfigFile) (api.RegistryAdapter, error) {
 		return nil, errors.New("No template found.")
 	}
 
-	return &TemplateRegistry{templates: parseTemplates(config.Templates), httpHeader: parseMap(config.HttpHeaders), url: u.String()}, nil
+	return &TemplateRegistry{templates: parseTemplates(config.Templates), httpHeader: parseMap(config.HttpHeaders), target: config}, nil
 }
 
 func (r *TemplateRegistry) Size() int {
@@ -96,7 +97,7 @@ func (r *TemplateRegistry) RunTemplate(status string, object interface{}) error 
 		if err != nil {
 			return err
 		}
-		err = exectureQuery(r.url, query, tmpl.HttpCmd, headers)
+		err = exectureQuery(r.target.Url, query, tmpl.HttpCmd, headers)
 		if err != nil {
 			return err
 		}

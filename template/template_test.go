@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewEmptyClientUrl(t *testing.T) {
-    config := config.NewConfigFile("test")
+    config := config.ConfigTarget{}
     templ , err := NewTemplate(&config)
     assert.Nil(t, templ)
     assert.NotNil(t, err)
@@ -19,7 +19,7 @@ func TestNewEmptyClientUrl(t *testing.T) {
 
 func TestNewNoTemplate(t *testing.T) {
 
-    config := config.NewConfigFile("test")
+    config := config.ConfigTarget{}
     templ, err :=NewTemplate(&config)
     assert.NotNil(t, err)
     assert.Nil(t, templ)
@@ -29,8 +29,10 @@ func TestNewNoTemplate(t *testing.T) {
 func TestNewWithGoodtemplate(t *testing.T) {
 
     // Run init
-    conf := config.NewConfigFile("test")    
-    conf.RegisterUrl = "http://localhost"
+    conf := config.ConfigTarget{
+        Templates: make(map[string][]*config.ConfigTemplate),
+    }
+    conf.Url = "http://localhost"
     templates:= conf.Templates
     template := config.ConfigTemplate {
         Name:       "TEST",
@@ -48,7 +50,12 @@ func TestNewWithGoodtemplate(t *testing.T) {
 
 func TestExecuteTemplate(t *testing.T) {
     conf := config.NewConfigFile("")
-    templates :=conf.Templates 
+    conf.Targets =  append(conf.Targets, &config.ConfigTarget{
+        Templates: make(map[string][]*config.ConfigTemplate),
+        Url:  "",
+    })
+    target := conf.Targets[0]
+    templates := target.Templates
     template := config.ConfigTemplate {
         Name:       "TEST",
         HttpCmd:    "et",
@@ -83,7 +90,12 @@ func TestExecuteTemplate(t *testing.T) {
 
 func TestStructMultiQuery(t *testing.T) {
     conf := config.NewConfigFile("")
-    templates :=conf.Templates 
+    conf.Targets =  append(conf.Targets, &config.ConfigTarget{
+        Templates: make(map[string][]*config.ConfigTemplate),
+        Url:  "",
+    })
+    target := conf.Targets[0]
+    templates := target.Templates
     template := config.ConfigTemplate {
         Name:       "TEST",
         HttpCmd:    "et",

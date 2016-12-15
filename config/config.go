@@ -32,18 +32,22 @@ func ConfigDir() string {
 
 type ConfigFile struct {
 	LogLevel		string							`json:"logLevel"`
-    DockerUrl       string                      	`json:"dockerUrl"`
-    RegisterUrl     string                      	`json:"registerUrl"`
+	DockerUrl       string                      	`json:"dockerUrl"`
 	HostIp          string                      	`json:"hostIp,omitpempty"`
+	Targets		[]*ConfigTarget			`json:"targets"`
+	filename        string                      	// non persistent
+}
+type ConfigTarget struct {
+	Name	string					`json:"name"`
+	Url	string                      		`json:"url"`
+	HttpHeaders       map[string]string		`json:"httpHeaders,omitpempty"`
 	Templates       map[string][]*ConfigTemplate  	`json:"templates"`
-	HttpHeaders       map[string]string			  	`json:"httpHeaders,omitpempty"`
-    filename        string                      	// non persistent
 }
 
 // NewConfigFile initializes an empty configuration file for the given filename 'fn'
 func NewConfigFile(fn string) ConfigFile {
 	return ConfigFile{
-		Templates: make(map[string][]*ConfigTemplate),
+		Targets: make([]*ConfigTarget, 0),
 		filename:    fn,
 	}
 }

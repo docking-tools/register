@@ -7,9 +7,8 @@ echo "param @ $@"
 
 if [ "$1" = 'register' ]; then
     shift
-    DOCKING_CONFIG=/register register \
+    DOCKING_CONFIG=/ register \
         -ip=${HOST_IP} \
-        -r=${REGISTER_URL} \
         -d=${DOCKER_URL} \
         "$@"
 else
