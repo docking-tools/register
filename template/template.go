@@ -144,7 +144,7 @@ func exectureQuery(url string, tmpl string, httpCmd string, httpHeaders map[stri
 		if (len(queryTab) == 2) {
 			value = queryTab[1]
 		}
-
+		log.Printf("Query: %s / response %v ", url + path, queryTab)
 		if len(path) > 0 {
 			request, err := http.NewRequest(httpCmd, url + path, strings.NewReader(value))
 			request.ContentLength = int64(len(value))

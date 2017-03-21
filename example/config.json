@@ -61,6 +61,22 @@
           }
         ]
       }
+    },
+    {
+      "name":"graphite",
+      "url":"https://preproduction.dashboard.bigdata.vsct.fr/graphite/",
+      "httpHeaders":{
+        "X-Consul-Token":"{{ env \"CONSUL_TOKEN\" }}"
+      },
+      "templates":{
+        "ALL":[
+          {
+            "name":"addEvent",
+            "httpCmd":"POST",
+            "query":"events/ { \"what\": \"Docker Event  {{.Container.Name}} - {{.Status}}\", \"tags\": [\"container-{{.Status}}\",\"docker\"], \"data\": \"Docker container {{.Container.Name}} status chaned to {{.Status}}\" }"
+          }
+        ]
+      }
     }
   ]
 }

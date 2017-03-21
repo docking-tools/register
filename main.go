@@ -70,7 +70,7 @@ clients := make([]api.RegistryAdapter, 0)
 		   if err != nil {
 			   log.Printf("Error on RunTemplate %v", err)
 			   closeChan <- err
-			   return nil
+			   continue
 		   }
 	   }
 	return nil

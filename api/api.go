@@ -16,6 +16,7 @@ type Instance struct {
 	Container interface{}
 	Services []*Service
 	MetaDataGraph map[string]interface{}
+	Status string
 	
 }
 

@@ -149,7 +149,7 @@ func (doc * DockerRegistry) Start(ep api.EventProcessor) {
 		instance := api.Instance {
 			Services :parseService(doc.config, &container,status),
 		    MetaDataGraph :parseHierarchicalMetadata(doc.config, &container,status),
-		    Container: container,
+		    Container: container, Status: status,
 		}
 		go ep(status, instance, closeChan)
 	}	
