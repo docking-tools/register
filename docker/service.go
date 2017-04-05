@@ -1,45 +1,43 @@
 package docker
 
 import (
-    "net"
-    "path"
-    "log"    
-    "strconv"
-    "strings"
-    "github.com/docker/engine-api/types"
-    api "github.com/docking-tools/register/api"
-    "github.com/docking-tools/register/config"
+	"github.com/docker/docker/api/types"
+	api "github.com/docking-tools/register/api"
+	"github.com/docking-tools/register/config"
+	"log"
+	"net"
+	"path"
+	"strconv"
+	"strings"
 )
 
-
 func createService(config *config.ConfigFile, container *types.ContainerJSON) ([]*api.Service, error) {
- 
+
 	ports := make(map[string]DockerServicePort)
 
-	if container.NetworkSettings != nil && len(container.NetworkSettings.Ports)>0 {
+	if container.NetworkSettings != nil && len(container.NetworkSettings.Ports) > 0 {
 		// Extract runtime port mappings, relevant when using --net=bridge
 		for port, published := range container.NetworkSettings.Ports {
 			ports[string(port)] = servicePort(container, port, published)
 		}
 
 	}
-	
-    services := make([]*api.Service,0)
+
+	services := make([]*api.Service, 0)
 
 	for _, port := range ports {
-        service := newService(config, port, len(ports) > 1)
+		service := newService(config, port, len(ports) > 1)
 		if service == nil {
-				log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort)
+			log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort)
 			continue
 		}
 		services = append(services, service)
-    }
+	}
 
 	return services, nil
 }
 
-
-func  newService(config *config.ConfigFile, port DockerServicePort, isgroup bool) *api.Service {
+func newService(config *config.ConfigFile, port DockerServicePort, isgroup bool) *api.Service {
 	container := port.container
 	defaultName := strings.Split(path.Base(container.Config.Image), ":")[0]
 
@@ -59,8 +57,6 @@ func  newService(config *config.ConfigFile, port DockerServicePort, isgroup bool
 		}
 	}
 
-
-
 	metadata, metadataFromPort := serviceMetaData(container.Config, port.ExposedPort)
 
 	ignore := mapDefault(metadata, "ignore", "")
@@ -77,23 +73,23 @@ func  newService(config *config.ConfigFile, port DockerServicePort, isgroup bool
 		service.Name += "-" + port.ExposedPort
 	}
 	var p int
-//	if doc.config.Internal == true {
-//		service.IP = port.ExposedIP
-//		p, _ = strconv.Atoi(port.ExposedPort)
-//	} else {
-		service.IP = port.HostIP
-		p, _ = strconv.Atoi(port.HostPort)
-//	}
+	//	if doc.config.Internal == true {
+	//		service.IP = port.ExposedIP
+	//		p, _ = strconv.Atoi(port.ExposedPort)
+	//	} else {
+	service.IP = port.HostIP
+	p, _ = strconv.Atoi(port.HostPort)
+	//	}
 	service.Port = p
 
 	if port.PortType == "udp" {
-        service.Tags = combineTags(
-//			mapDefault(metadata, "tags", ""), b.config.ForceTags, "udp")
+		service.Tags = combineTags(
+			//			mapDefault(metadata, "tags", ""), b.config.ForceTags, "udp")
 			mapDefault(metadata, "tags", ""), "", "udp")
 		service.ID = service.ID + ":udp"
 	} else {
 		service.Tags = combineTags(
-//			mapDefault(metadata, "tags", ""), b.config.ForceTags)
+			//			mapDefault(metadata, "tags", ""), b.config.ForceTags)
 			mapDefault(metadata, "tags", ""), "")
 	}
 
@@ -107,7 +103,7 @@ func  newService(config *config.ConfigFile, port DockerServicePort, isgroup bool
 	delete(metadata, "name")
 	delete(metadata, "version")
 	service.Attrs = metadata
-//	service.TTL = doc.config.RefreshTtl
+	//	service.TTL = doc.config.RefreshTtl
 
 	return service
 }

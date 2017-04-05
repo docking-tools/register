@@ -1,13 +1,13 @@
 package docker
 
 import (
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/go-connections/nat"
+	api "github.com/docking-tools/register/api"
 	"regexp"
 	"strconv"
 	"strings"
-	"github.com/docker/engine-api/types"
-	"github.com/docker/engine-api/types/container"
-	api "github.com/docking-tools/register/api"
-	"github.com/docker/go-connections/nat"
 )
 
 func mapDefault(m map[string]string, key, default_ string) string {
@@ -28,8 +28,6 @@ func combineTags(tagParts ...string) []string {
 	return tags
 }
 
-
-
 func serviceMetaData(config *container.Config, port string) (map[string]string, map[string]bool) {
 
 	serviceRegex := regexp.MustCompile("([^_.]+|^service[_.]+)((^[_.]+))?")
@@ -42,72 +40,69 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 	metadataFromPort := make(map[string]bool)
 	for _, kv := range meta {
 		kvp := strings.SplitN(kv, "=", 2)
-		match := serviceRegex.FindAllStringSubmatch(kvp[0],-1)
-		
-		if len(match)>=1 && strings.EqualFold("service", match[0][0]){
+		match := serviceRegex.FindAllStringSubmatch(kvp[0], -1)
+
+		if len(match) >= 1 && strings.EqualFold("service", match[0][0]) {
 
 			key := match[1][0]
 			if metadataFromPort[key] {
 				continue
 			}
 			portkey, err := strconv.Atoi(match[1][0])
-		//	_, err := strconv.Atoi(portkey[0])
+			//	_, err := strconv.Atoi(portkey[0])
 			if err == nil && portkey > 1 {
 				if match[1][0] != port {
 					continue
 				}
-				keys := make([]string,0)
+				keys := make([]string, 0)
 				for toto := range match[2:] {
 
 					keys = append(keys, match[2+toto][0])
 				}
-				metadata[strings.ToLower(strings.Join(keys,"."))] = kvp[1]
-				metadataFromPort[strings.ToLower(strings.Join(keys,"."))] = true
+				metadata[strings.ToLower(strings.Join(keys, "."))] = kvp[1]
+				metadataFromPort[strings.ToLower(strings.Join(keys, "."))] = true
 
 			} else {
-				keys := make([]string,0)
+				keys := make([]string, 0)
 				for toto := range match[1:] {
 
-					keys = append(keys, match[1 + toto][0])
+					keys = append(keys, match[1+toto][0])
 				}
-				metadata[strings.ToLower(strings.Join(keys,"."))] = kvp[1]
+				metadata[strings.ToLower(strings.Join(keys, "."))] = kvp[1]
 			}
 		}
 	}
 	return metadata, metadataFromPort
 }
 
-
-
-
 func graphMetaData(config *container.Config) api.Recmap {
 	meta := config.Env
 	for k, v := range config.Labels {
-		meta = append(meta, k + "=" + v)
+		meta = append(meta, k+"="+v)
 	}
 	metaRegex := regexp.MustCompile("[_.]")
 
 	//var nextMap interface{}
 	nextMap := make(api.Recmap)
-	result :=nextMap
+	result := nextMap
 	for _, kv := range meta {
 		kvp := strings.SplitN(kv, "=", 2)
-		if len(kvp)>=2 {
+		if len(kvp) >= 2 {
 			match := metaRegex.Split(kvp[0], -1)
 			for _, key := range match[:len(match)-1] {
-				sKey :=strings.ToLower(key)
-				if _, ok :=nextMap[sKey].(api.Recmap); !ok  {
+				sKey := strings.ToLower(key)
+				if _, ok := nextMap[sKey].(api.Recmap); !ok {
 					nextMap[sKey] = make(api.Recmap)
 				}
 				nextMap = nextMap[sKey].(api.Recmap)
 
 			}
-			nextMap[match[len(match)-1]]=kvp[1]
+			nextMap[match[len(match)-1]] = kvp[1]
 			nextMap = result
 		}
 	}
 	return result
-	
+
 }
 
 func servicePort(container *types.ContainerJSON, port nat.Port, published []nat.PortBinding) DockerServicePort {
@@ -136,13 +131,13 @@ func servicePort(container *types.ContainerJSON, port nat.Port, published []nat.
 	}
 
 	return DockerServicePort{
-		
-		ServicePort: api.ServicePort {
-			HostPort:          hp,
-			HostIP:            hip,
-			ExposedPort:       ep,
-			ExposedIP:         eip,
-			PortType:          ept,
+
+		ServicePort: api.ServicePort{
+			HostPort:    hp,
+			HostIP:      hip,
+			ExposedPort: ep,
+			ExposedIP:   eip,
+			PortType:    ept,
 		},
 		ContainerID:       container.ID,
 		ContainerHostname: container.Config.Hostname,

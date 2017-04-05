@@ -1,8 +1,8 @@
 package docker
 
 import (
-    eventtypes "github.com/docker/engine-api/types/events"
-    "sync"
+	eventtypes "github.com/docker/docker/api/types/events"
+	"sync"
 )
 
 type eventHandler struct {
@@ -15,6 +15,7 @@ func (w *eventHandler) Handle(action string, h func(eventtypes.Message)) {
 	w.handlers[action] = h
 	w.mu.Unlock()
 }
+
 // Watch ranges over the passed in event chan and processes the events based on the
 // handlers created for a given action.
 // To stop watching, close the event chan.
@@ -28,8 +29,8 @@ func (w *eventHandler) Watch(c <-chan eventtypes.Message) {
 			go h(e)
 		}
 		if existsI {
-			go i(e)	
+			go i(e)
 		}
-		
+
 	}
 }
