@@ -18,4 +18,4 @@ echo "Running tests..."
 	if [ $MACHINE_TYPE != "armv7l" ]; then
 		RACE="--race"
 	fi
-	go test -v -timeout 3m ${COVER} ${RACE} ./...
+	go test -v -timeout 3m ${COVER} ${RACE} $(glide novendor)
