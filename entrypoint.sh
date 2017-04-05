@@ -9,7 +9,6 @@ if [ "$1" = 'register' ]; then
     shift
     DOCKING_CONFIG=/ register \
         -ip=${HOST_IP} \
-        -d=${DOCKER_URL} \
         "$@"
 else
     exec "$@"

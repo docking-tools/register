@@ -54,7 +54,7 @@ func TestGraphMetaData(t *testing.T) {
 	}
 
 	config.Labels["cron.test.titi"] = "ok"
-	config.Labels["cron.test"] = "KO"
+	//	config.Labels["cron.test"] = "KO"
 
 	config.Labels["cron.test.tutu"] = "ok"
 	config.Labels["cron.8080.test"] = "ok-port"
