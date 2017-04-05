@@ -1,0 +1,42 @@
+package: github.com/docking-tools/register
+import:
+- package: github.com/Microsoft/go-winio
+  version: ^0.3.2
+- package: github.com/Sirupsen/logrus
+  version: ^0.10.0
+- package: github.com/docker/go-units
+  version: ^0.3.0
+- package: github.com/docker/libtrust
+  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+- package: github.com/opencontainers/go-digest
+  version: ^1.0.0-rc0
+- package: github.com/pkg/errors
+  version: ff09b135c25aae272398c51a07235b90a75aa4f0
+- package: golang.org/x/net
+  version: fb93926129b8ec0056f2f458b1f519654814edf0
+  subpackages:
+  - context
+  - context/ctxhttp
+  - proxy
+- package: golang.org/x/sys
+  version: f64b50fbea64174967a8882830d621a18ee1548e
+  subpackages:
+  - unix
+  - windows
+- package: github.com/docker/docker
+  version: ^17.4.0-ce-rc2
+  subpackages:
+  - api/types
+  - api/types/container
+  - api/types/events
+  - api/types/filters
+  - client
+- package: github.com/docker/go-connections
+  version: ^0.2.1
+  subpackages:
+  - nat
+testImport:
+- package: github.com/stretchr/testify
+  version: ^1.1.4
+  subpackages:
+  - assert
