@@ -1,7 +1,5 @@
 {
   "LogLevel":"debug",
-  "dockerUrl":"tcp://10.206.2.54:2375",
-  "hostIp":"10.206.2.54",
   "targets":[
     {
       "name":"consul",
