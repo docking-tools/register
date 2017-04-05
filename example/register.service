@@ -1,0 +1,15 @@
+[Unit]
+Description=Manage docker discovering
+Requires=docker.service
+After=docker.service
+ 
+[Service]
+Restart=always
+ExecStart=/usr/bin/register
+Restart=on-failure
+ 
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+ 
+[Install]
+WantedBy=default.target
