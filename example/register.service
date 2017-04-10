@@ -1,7 +1,6 @@
 # To be made on /lib/systemd/system.register.service
 [Unit]
 Description=Manage docker discovering
-Requires=docker.service
 After=docker.service
 
 [Service]
