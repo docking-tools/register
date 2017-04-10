@@ -14,7 +14,7 @@ install:
   - tar -vxz -C $HOME/bin --strip=1 -f glide-0.10.2-linux-amd64.tar.gz
   - export PATH="$HOME/bin:$PATH"
   - glide install
-  - glide update --strip-vendor
+  - glide update --strip-vendor --strip-vcs
 after_deploy:
 - |
   curl -H "Content-Type:application/json" --data '{"source_type":"Tag", "source_name":"'$TRAVIS_TAG'"}'  -X POST https://registry.hub.docker.com/u/dockingtools/register/trigger/$DOCKER_HUB_TOKEN/
