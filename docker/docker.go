@@ -80,6 +80,7 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 			case event := <-eventq:
 				c <- event
 			case err := <-errq:
+				log.Fatalln("FAILURE on read docker event %v", err)
 				closeChan <- err
 				return
 			}
@@ -172,9 +173,9 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 				if err != nil {
 					// this is suppressing "unexpected EOF" in the cli when the
 					// daemon restarts so it shutdowns cleanly
+					log.Printf("Error on run", err)
 					if err != io.ErrUnexpectedEOF {
 						closeChan <- err
-						log.Printf("Error on run", err)
 						close(closeChan)
 					}
 				}

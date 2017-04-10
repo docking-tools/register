@@ -52,6 +52,10 @@ func main() {
 	docker, err := doc.New(configFile)
 
 	assert(err)
+	if len(clients) == 0 {
+		log.Fatalln("Ns template found.")
+	}
+
 	docker.Start(func(status string, object interface{}, closeChan chan error) error {
 		for _, client := range clients {
 			if client == nil {
