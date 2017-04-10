@@ -3,15 +3,11 @@ go:
 - 1.6
 sudo: false
 before_script: 
-- go get github.com/stretchr/testify/assert
+  - go get github.com/stretchr/testify/assert
 script:
-- go test -v -cover $(glide novendor)
-<<<<<<< HEAD
-- go installi
-=======
-- CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install
->>>>>>> add exec on binary file
-- chmod +x $GOPATH/bin/register
+  - go test -v -cover $(glide novendor)
+  - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install
+  - chmod +x $GOPATH/bin/register
 install:
   - wget "https://github.com/Masterminds/glide/releases/download/0.10.2/glide-0.10.2-linux-amd64.tar.gz"
   - mkdir -p $HOME/bin
