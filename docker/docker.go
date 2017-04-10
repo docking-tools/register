@@ -69,7 +69,7 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 		options := types.EventsOptions{
 			Filters: f,
 		}
-		events, errs := doc.docker.Events(context.Background(), options)
+		eventq, errq := doc.docker.Events(context.Background(), options)
 		// Whether we successfully subscribed to events or not, we can now
 		// unblock the main goroutine.
 		close(started)
@@ -77,13 +77,9 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 
 		for {
 			select {
-			case event := <-events:
+			case event := <-eventq:
 				c <- event
-				return
-			case err := <-errs:
-				if err == io.EOF {
-					return
-				}
+			case err := <-errq:
 				closeChan <- err
 				return
 			}

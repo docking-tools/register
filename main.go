@@ -40,7 +40,7 @@ func main() {
 
 	flag.Parse()
 
-	log.Printf("Configuration:   %s %v", len(configFile.Targets), configFile)
+	log.Printf("Configuration:  %v %v", len(configFile.Targets), configFile)
 
 	clients := make([]api.RegistryAdapter, 0)
 	for _, target := range configFile.Targets {
