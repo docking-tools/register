@@ -2,6 +2,7 @@ package docker
 
 import (
 	"github.com/docker/docker/api/types"
+	swarm "github.com/docker/docker/api/types/swarm"
 	api "github.com/docking-tools/register/api"
 	"github.com/docking-tools/register/config"
 	"log"
@@ -11,22 +12,31 @@ import (
 	"strings"
 )
 
-func createService(config *config.ConfigFile, container *types.ContainerJSON) ([]*api.Service, error) {
+func createService(config *config.ConfigFile, container *types.ContainerJSON, swarmService *swarm.Service) ([]*api.Service, error) {
 
 	ports := make(map[string]DockerServicePort)
+	isSwarmMode := false
+	if swarmService == nil {
+		// For non swarm mode container
+		if container.NetworkSettings != nil && len(container.NetworkSettings.Ports) > 0 {
+			// Extract runtime port mappings, relevant when using --net=bridge
+			for port, published := range container.NetworkSettings.Ports {
+				ports[string(port)] = servicePort(container, port, published)
+			}
 
-	if container.NetworkSettings != nil && len(container.NetworkSettings.Ports) > 0 {
-		// Extract runtime port mappings, relevant when using --net=bridge
-		for port, published := range container.NetworkSettings.Ports {
-			ports[string(port)] = servicePort(container, port, published)
+		}
+	} else {
+		isSwarmMode = true
+		// For swarm mode container
+		for _, port := range swarmService.Endpoint.Ports {
+			ports[string(port.TargetPort)] = serviceSwarmPort(container, port)
 		}
 
 	}
-
 	services := make([]*api.Service, 0)
 
 	for _, port := range ports {
-		service := newService(config, port, len(ports) > 1)
+		service := newService(config, port, len(ports) > 1, isSwarmMode)
 		if service == nil {
 			log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort)
 			continue
@@ -37,7 +47,7 @@ func createService(config *config.ConfigFile, container *types.ContainerJSON) ([
 	return services, nil
 }
 
-func newService(config *config.ConfigFile, port DockerServicePort, isgroup bool) *api.Service {
+func newService(config *config.ConfigFile, port DockerServicePort, isgroup bool, isSwarmMode bool) *api.Service {
 	container := port.container
 	defaultName := strings.Split(path.Base(container.Config.Image), ":")[0]
 
@@ -69,6 +79,7 @@ func newService(config *config.ConfigFile, port DockerServicePort, isgroup bool)
 	service.ID = container.ID[:12]
 	service.Name = mapDefault(metadata, "name", defaultName)
 	service.Version = mapDefault(metadata, "version", "default")
+	service.SwarmMode = isSwarmMode
 	if isgroup && !metadataFromPort["name"] {
 		service.Name += "-" + port.ExposedPort
 	}

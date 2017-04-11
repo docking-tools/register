@@ -4,6 +4,7 @@ import (
 	"github.com/docker/docker/api/types"
 	eventtypes "github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
+	swarm "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	api "github.com/docking-tools/register/api"
 	"github.com/docking-tools/register/config"
@@ -90,7 +91,17 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 	parseService := func(config *config.ConfigFile, container *types.ContainerJSON, status string) []*api.Service {
 
 		services := make([]*api.Service, 0)
-		services, err := createService(config, container)
+		var swarmService swarm.Service
+		if val, ok := container.Config.Labels["com.docker.swarm.service.id"]; ok {
+			serv, _, err := doc.docker.ServiceInspectWithRaw(context.Background(), val)
+			if err != nil {
+				closeChan <- err
+				return services
+			}
+			swarmService = serv
+		}
+
+		services, err := createService(config, container, &swarmService)
 		if err != nil {
 			closeChan <- err
 		}
@@ -128,6 +139,7 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 		if status == "" {
 			status = container.State.Status
 		}
+
 		instance := api.Instance{
 			Services:      parseService(doc.config, &container, status),
 			MetaDataGraph: parseHierarchicalMetadata(doc.config, &container, status),

@@ -3,6 +3,7 @@ package docker
 import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	swarm "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/go-connections/nat"
 	api "github.com/docking-tools/register/api"
 	"regexp"
@@ -103,6 +104,28 @@ func graphMetaData(config *container.Config) api.Recmap {
 	}
 	return result
 
+}
+
+func serviceSwarmPort(container *types.ContainerJSON, port swarm.PortConfig) DockerServicePort {
+	var hp, ep, ept string
+
+	hp = string(port.TargetPort)
+	ep = string(port.PublishedPort)
+	ept = string(port.PublishMode)
+
+	return DockerServicePort{
+
+		ServicePort: api.ServicePort{
+			HostPort:    hp,
+			HostIP:      "",
+			ExposedPort: ep,
+			ExposedIP:   "",
+			PortType:    ept,
+		},
+		ContainerID:       container.ID,
+		ContainerHostname: container.Config.Hostname,
+		container:         container,
+	}
 }
 
 func servicePort(container *types.ContainerJSON, port nat.Port, published []nat.PortBinding) DockerServicePort {

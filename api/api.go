@@ -1,35 +1,32 @@
 package api
 
-import (
-)
+import ()
 
 type EventProcessor func(status string, object interface{}, closeChan chan error) error
 
 type Recmap map[string]interface{}
 type RegistryAdapter interface {
-    RunTemplate(status string, object interface{}) error
-
+	RunTemplate(status string, object interface{}) error
 }
 
-
 type Instance struct {
-	Container interface{}
-	Services []*Service
+	Container     interface{}
+	Services      []*Service
 	MetaDataGraph map[string]interface{}
-	Status string
-	
+	Status        string
 }
 
 type Service struct {
-	ID    string
-	Name  string
-	Port  int
-	IP    string
-	Version string
-	Tags  []string
-	Attrs map[string]string
-	TTL   int
-	Origin ServicePort
+	ID        string
+	Name      string
+	Port      int
+	IP        string
+	Version   string
+	Tags      []string
+	Attrs     map[string]string
+	TTL       int
+	Origin    ServicePort
+	SwarmMode bool
 }
 
 type ServicePortAPI interface {
@@ -40,13 +37,12 @@ type ServicePortAPI interface {
 	getPortType() string
 }
 
-
 type ServicePort struct {
-	HostPort          string
-	HostIP            string
-	ExposedPort       string
-	ExposedIP         string
-	PortType          string
+	HostPort    string
+	HostIP      string
+	ExposedPort string
+	ExposedIP   string
+	PortType    string
 }
 
 func (s *ServicePort) getHostPort() string {
