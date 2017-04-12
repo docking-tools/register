@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -72,7 +72,7 @@ func Load(configDir string) (*ConfigFile, error) {
 	}
 
 	filePath := filepath.Join(configDir, ConfigFileName)
-	log.Println("Read config file: ", filePath)
+	log.Info("Read config file: ", filePath)
 	configFile := NewConfigFile(filePath)
 
 	if _, err := os.Stat(configFile.filename); err == nil {
@@ -85,6 +85,11 @@ func Load(configDir string) (*ConfigFile, error) {
 		if err != nil {
 			err = fmt.Errorf("%s - %v", configFile.filename, err)
 		}
+		level, err := log.ParseLevel(configFile.LogLevel)
+		if err != nil {
+			err = fmt.Errorf("%s - %v", configFile.filename, err)
+		}
+		log.SetLevel(level)
 		return &configFile, err
 	} else {
 		// if file is there but we can't stat it for any reason other

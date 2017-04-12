@@ -1,6 +1,7 @@
 package docker
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	eventtypes "github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
@@ -10,7 +11,6 @@ import (
 	"github.com/docking-tools/register/config"
 	"golang.org/x/net/context"
 	"io"
-	"log"
 	"os"
 	"time"
 )
@@ -29,6 +29,7 @@ type DockerServicePort struct {
 	ContainerID       string
 	ContainerName     string
 	container         *types.ContainerJSON
+	ServiceName       string
 }
 
 func assert(err error) {
@@ -40,7 +41,9 @@ func assert(err error) {
 func New(config *config.ConfigFile) (*DockerRegistry, error) {
 
 	// Init docker
-	log.Printf("Start docker client with env %s", os.Getenv("DOCKER_HOST"))
+	log.WithFields(log.Fields{
+		"env": os.Getenv("DOCKER_HOST"),
+	}).Info("Start docker client")
 
 	// Init client docker
 
@@ -74,32 +77,23 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 		// Whether we successfully subscribed to events or not, we can now
 		// unblock the main goroutine.
 		close(started)
-		log.Printf("Start listenig docker event")
+		log.Debug("Start listenig docker event")
 
 		for {
 			select {
 			case event := <-eventq:
 				c <- event
 			case err := <-errq:
-				log.Fatalln("FAILURE on read docker event %v", err)
+				log.Fatalf("FAILURE on read docker event %v", err)
 				closeChan <- err
 				return
 			}
 		}
 	}
 
-	parseService := func(config *config.ConfigFile, container *types.ContainerJSON, status string) []*api.Service {
+	parseService := func(config *config.ConfigFile, container *types.ContainerJSON, swarmService swarm.Service, status string) []*api.Service {
 
 		services := make([]*api.Service, 0)
-		var swarmService swarm.Service
-		if val, ok := container.Config.Labels["com.docker.swarm.service.id"]; ok {
-			serv, _, err := doc.docker.ServiceInspectWithRaw(context.Background(), val)
-			if err != nil {
-				closeChan <- err
-				return services
-			}
-			swarmService = serv
-		}
 
 		services, err := createService(config, container, &swarmService)
 		if err != nil {
@@ -116,10 +110,10 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 
 	}
 
-	parseHierarchicalMetadata := func(config *config.ConfigFile, container *types.ContainerJSON, status string) api.Recmap {
+	parseHierarchicalMetadata := func(container *types.ContainerJSON, swarmService swarm.Service, status string) api.Recmap {
 
 		graph := make(api.Recmap)
-		graph = graphMetaData(container.Config)
+		graph = graphMetaData(envArrayToMap(container.Config.Env), container.Config.Labels, swarmService.Spec.Labels)
 		if data, ok := doc.graphMetaMap[container.ID]; ok && len(graph) == 0 {
 			graph = data
 			delete(doc.graphMetaMap, container.ID)
@@ -136,16 +130,28 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 			closeChan <- err
 			return
 		}
+		var swarmService swarm.Service
+		if val, ok := container.Config.Labels["com.docker.swarm.service.id"]; ok {
+			serv, _, err := doc.docker.ServiceInspectWithRaw(context.Background(), val, types.ServiceInspectOptions{})
+			if err != nil {
+				closeChan <- err
+				return
+			}
+			swarmService = serv
+		}
+
 		if status == "" {
 			status = container.State.Status
 		}
 
 		instance := api.Instance{
-			Services:      parseService(doc.config, &container, status),
-			MetaDataGraph: parseHierarchicalMetadata(doc.config, &container, status),
+			Services:      parseService(doc.config, &container, swarmService, status),
+			MetaDataGraph: parseHierarchicalMetadata(&container, swarmService, status),
 			Container:     container, Status: status,
 		}
-		log.Printf("Object before template %+v", instance.Services)
+		log.WithFields(log.Fields{
+			"services": instance.Services,
+		}).Debug("Object before template ")
 		go ep(status, instance, closeChan)
 	}
 	// getContainerList simulates creation event for all previously existing
@@ -165,7 +171,10 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 
 	eh := eventHandler{handlers: make(map[string]func(eventtypes.Message))}
 	eh.Handle("*", func(e eventtypes.Message) {
-		log.Printf("new event %v id: %v", e.Status, e.ID)
+		log.WithFields(log.Fields{
+			"eventId":     e.ID,
+			"eventStatus": e.Status,
+		}).Debug("new event")
 		parseContainer(e.ID, e.Status)
 	})
 
@@ -186,7 +195,7 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 				if err != nil {
 					// this is suppressing "unexpected EOF" in the cli when the
 					// daemon restarts so it shutdowns cleanly
-					log.Printf("Error on run", err)
+					log.Warnf("Error on run", err)
 					if err != io.ErrUnexpectedEOF {
 						closeChan <- err
 						close(closeChan)

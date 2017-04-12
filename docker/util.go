@@ -2,10 +2,10 @@ package docker
 
 import (
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
 	swarm "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/go-connections/nat"
 	api "github.com/docking-tools/register/api"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -29,19 +29,31 @@ func combineTags(tagParts ...string) []string {
 	return tags
 }
 
-func serviceMetaData(config *container.Config, port string) (map[string]string, map[string]bool) {
+func envArrayToMap(envs []string) map[string]string {
+	result := make(map[string]string)
+	for _, kv := range envs {
+		kvp := strings.SplitN(kv, "=", 2)
+		if len(kvp) >= 2 {
+			result[kvp[0]] = kvp[1]
+		}
+	}
+	return result
+}
+
+func serviceMetaData(port string, metadata ...map[string]string) (map[string]string, map[string]bool) {
 
 	serviceRegex := regexp.MustCompile("([^_.]+|^service[_.]+)((^[_.]+))?")
 
-	meta := config.Env
-	for k, v := range config.Labels {
-		meta = append(meta, k+"="+v)
+	meta := make(map[string]string)
+	for _, arg := range metadata {
+		for k, v := range arg {
+			meta[k] = v
+		}
 	}
-	metadata := make(map[string]string)
+	serviceMetaData := make(map[string]string)
 	metadataFromPort := make(map[string]bool)
-	for _, kv := range meta {
-		kvp := strings.SplitN(kv, "=", 2)
-		match := serviceRegex.FindAllStringSubmatch(kvp[0], -1)
+	for k, v := range meta {
+		match := serviceRegex.FindAllStringSubmatch(k, -1)
 
 		if len(match) >= 1 && strings.EqualFold("service", match[0][0]) {
 
@@ -60,7 +72,7 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 
 					keys = append(keys, match[2+toto][0])
 				}
-				metadata[strings.ToLower(strings.Join(keys, "."))] = kvp[1]
+				serviceMetaData[strings.ToLower(strings.Join(keys, "."))] = v
 				metadataFromPort[strings.ToLower(strings.Join(keys, "."))] = true
 
 			} else {
@@ -69,48 +81,47 @@ func serviceMetaData(config *container.Config, port string) (map[string]string, 
 
 					keys = append(keys, match[1+toto][0])
 				}
-				metadata[strings.ToLower(strings.Join(keys, "."))] = kvp[1]
+				serviceMetaData[strings.ToLower(strings.Join(keys, "."))] = v
 			}
 		}
 	}
-	return metadata, metadataFromPort
+	return serviceMetaData, metadataFromPort
 }
 
-func graphMetaData(config *container.Config) api.Recmap {
-	meta := config.Env
-	for k, v := range config.Labels {
-		meta = append(meta, k+"="+v)
+func graphMetaData(metadata ...map[string]string) api.Recmap {
+	meta := make(map[string]string)
+	for _, arg := range metadata {
+		for k, v := range arg {
+			meta[k] = v
+		}
 	}
 	metaRegex := regexp.MustCompile("[_.]")
 
 	//var nextMap interface{}
 	nextMap := make(api.Recmap)
 	result := nextMap
-	for _, kv := range meta {
-		kvp := strings.SplitN(kv, "=", 2)
-		if len(kvp) >= 2 {
-			match := metaRegex.Split(kvp[0], -1)
-			for _, key := range match[:len(match)-1] {
-				sKey := strings.ToLower(key)
-				if _, ok := nextMap[sKey].(api.Recmap); !ok {
-					nextMap[sKey] = make(api.Recmap)
-				}
-				nextMap = nextMap[sKey].(api.Recmap)
-
+	for k, v := range meta {
+		match := metaRegex.Split(k, -1)
+		for _, key := range match[:len(match)-1] {
+			sKey := strings.ToLower(key)
+			if _, ok := nextMap[sKey].(api.Recmap); !ok {
+				nextMap[sKey] = make(api.Recmap)
 			}
-			nextMap[match[len(match)-1]] = kvp[1]
-			nextMap = result
+			nextMap = nextMap[sKey].(api.Recmap)
+
 		}
+		nextMap[match[len(match)-1]] = v
+		nextMap = result
 	}
 	return result
 
 }
 
-func serviceSwarmPort(container *types.ContainerJSON, port swarm.PortConfig) DockerServicePort {
+func serviceSwarmPort(container *types.ContainerJSON, swarmService *swarm.Service, port swarm.PortConfig) DockerServicePort {
 	var hp, ep, ept string
 
-	hp = string(port.TargetPort)
-	ep = string(port.PublishedPort)
+	ep = strconv.FormatUint(uint64(port.TargetPort), 10)
+	hp = strconv.FormatUint(uint64(port.PublishedPort), 10)
 	ept = string(port.PublishMode)
 
 	return DockerServicePort{
@@ -125,6 +136,7 @@ func serviceSwarmPort(container *types.ContainerJSON, port swarm.PortConfig) Doc
 		ContainerID:       container.ID,
 		ContainerHostname: container.Config.Hostname,
 		container:         container,
+		ServiceName:       swarmService.Spec.Name,
 	}
 }
 
@@ -165,5 +177,6 @@ func servicePort(container *types.ContainerJSON, port nat.Port, published []nat.
 		ContainerID:       container.ID,
 		ContainerHostname: container.Config.Hostname,
 		container:         container,
+		ServiceName:       strings.Split(path.Base(container.Config.Image), ":")[0],
 	}
 }

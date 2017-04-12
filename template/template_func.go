@@ -1,10 +1,10 @@
 package template
 
 import (
-	"os"
-	"github.com/docking-tools/register/api"
 	"bytes"
+	"github.com/docking-tools/register/api"
 	"log"
+	"os"
 )
 
 // env returns the value of the environment variable set
@@ -20,7 +20,7 @@ func convertGraphTopath(m api.Recmap) (result map[string]string) {
 		buffer.WriteString("/")
 		buffer.WriteString(k)
 		key := buffer.String()
-		switch v.(type){
+		switch v.(type) {
 		case api.Recmap:
 			child := convertGraphTopath(v.(api.Recmap))
 			for kc, vc := range child {
@@ -35,7 +35,6 @@ func convertGraphTopath(m api.Recmap) (result map[string]string) {
 
 		}
 	}
-	log.Printf("result %v",result)
 	return
 }
 
@@ -45,13 +44,13 @@ func listPathfromGraph(m api.Recmap) (result []string) {
 }
 func listPathfromGraphInt(m api.Recmap) (result []string, hasKey bool) {
 	result = make([]string, 0)
-	hasKey=false
+	hasKey = false
 	for k, v := range m {
 		var buffer bytes.Buffer
 		buffer.WriteString("/")
 		buffer.WriteString(k)
 		key := buffer.String()
-		switch v.(type){
+		switch v.(type) {
 		case api.Recmap:
 			child, lastKey := listPathfromGraphInt(v.(api.Recmap))
 			if lastKey {

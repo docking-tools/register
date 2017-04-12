@@ -1,5 +1,5 @@
 hash: 2b1b2e42010e8fe59c5ae4913c909c35c6b5b5a56227b55cfbee1ebcfa2cadea
-updated: 2017-04-05T12:44:04.97008154Z
+updated: 2017-04-13T07:20:57.996470706Z
 imports:
 - name: github.com/docker/distribution
   version: 0700fa570d7bcc1b3e46ee127c4489fd25f4daa3
@@ -7,7 +7,7 @@ imports:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 2f35d73b7dc7a9e234ea06f6145a26c37472c775
+  version: 2878a859b5ea11d4d380a9e65c3db51eead84816
   subpackages:
   - api
   - api/types

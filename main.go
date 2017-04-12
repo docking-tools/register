@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	config "github.com/docking-tools/register/config"
 	doc "github.com/docking-tools/register/docker"
 	template "github.com/docking-tools/register/template"
-	"log"
 	"os"
 
 	"github.com/docking-tools/register/api"
@@ -20,7 +20,7 @@ func assert(err error) {
 
 func main() {
 
-	log.Printf("Starting register ...")
+	log.Info("Starting register ...")
 
 	//    configDir := flag.String("c", config.ConfigDir(), "Path for config dir (default $DOCKING_CONFIG)")
 
@@ -40,7 +40,10 @@ func main() {
 
 	flag.Parse()
 
-	log.Printf("Configuration:  %v %v", len(configFile.Targets), configFile)
+	log.WithFields(log.Fields{
+		"NumberOfTarget": len(configFile.Targets),
+		"Config":         configFile,
+	}).Info("Configuration")
 
 	clients := make([]api.RegistryAdapter, 0)
 	for _, target := range configFile.Targets {
@@ -53,7 +56,7 @@ func main() {
 
 	assert(err)
 	if len(clients) == 0 {
-		log.Fatalln("Ns template found.")
+		log.Fatal("No template found.")
 	}
 
 	docker.Start(func(status string, object interface{}, closeChan chan error) error {
@@ -63,7 +66,7 @@ func main() {
 			}
 			err := client.RunTemplate(status, object)
 			if err != nil {
-				log.Printf("Error on RunTemplate %v", err)
+				log.Warn("Error on RunTemplate %v", err)
 				closeChan <- err
 				continue
 			}

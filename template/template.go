@@ -3,14 +3,14 @@ package template
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
-	"log"
-	"net/url"
-	"net/http"
-	"strings"
-	"text/template"
+	log "github.com/Sirupsen/logrus"
 	"github.com/docking-tools/register/api"
 	"github.com/docking-tools/register/config"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"strings"
+	"text/template"
 )
 
 // Usage:
@@ -18,15 +18,15 @@ import (
 
 type TemplateRegistry struct {
 	api.RegistryAdapter
-	target *config.ConfigTarget
+	target     *config.ConfigTarget
 	templates  map[string][]*config.ConfigTemplate
 	httpHeader map[string]*template.Template
 }
 
 var funcs = map[string]interface{}{
-	"env": env,
+	"env":                env,
 	"convertGraphTopath": convertGraphTopath,
-	"listPathfromGraph": listPathfromGraph,
+	"listPathfromGraph":  listPathfromGraph,
 }
 
 func NewTemplate(config *config.ConfigTarget) (api.RegistryAdapter, error) {
@@ -67,7 +67,7 @@ func parseTemplates(confTmpl map[string][]*config.ConfigTemplate) map[string][]*
 		for _, conf := range confList {
 			conf.SetTmpl(template.Must(template.New(conf.Name).Funcs(funcs).Parse(conf.Template)))
 		}
-		if (strings.Contains(key, ",")) {
+		if strings.Contains(key, ",") {
 			keys := strings.Split(key, ",")
 			for _, newKey := range keys {
 				confTmpl[strings.ToUpper(newKey)] = append(confTmpl[strings.ToUpper(newKey)], confList...)
@@ -83,8 +83,11 @@ func (r *TemplateRegistry) RunTemplate(status string, object interface{}) error 
 	tmpls := []*config.ConfigTemplate{}
 	tmpls = append(tmpls, r.templates[strings.ToUpper(status)]...)
 	tmpls = append(tmpls, r.templates["ALL"]...)
-	if (len(tmpls) < 1) {
-		log.Printf("no template found for event %s %v", strings.ToUpper(status), r.templates)
+	if len(tmpls) < 1 {
+		log.WithFields(log.Fields{
+			"event":     strings.ToUpper(status),
+			"templates": r.templates,
+		}).Warn("no template found for event")
 	}
 
 	// calcul httpHeader for all query
@@ -125,7 +128,9 @@ func executeHttpHeaders(data map[string]*template.Template, object interface{}) 
 		bufQuery := &bytes.Buffer{}
 		err := value.Execute(bufQuery, object)
 		if err != nil {
-			log.Fatal("Error on execute httpHeader template: %s ", key)
+			log.WithFields(log.Fields{
+				"templateHeader": key,
+			}).Fatal("Error on execute httpHeader template")
 		} else {
 			result[key] = bufQuery.String()
 		}
@@ -141,28 +146,34 @@ func exectureQuery(url string, tmpl string, httpCmd string, httpHeaders map[stri
 		queryTab := strings.SplitN(query, " ", 2)
 		path := queryTab[0]
 		value := ""
-		if (len(queryTab) == 2) {
+		if len(queryTab) == 2 {
 			value = queryTab[1]
 		}
-		log.Printf("Query: %s / response %v ", url + path, queryTab)
+		log.WithFields(log.Fields{
+			"query":    url + path,
+			"response": queryTab,
+		}).Debug("Execute query template")
 		if len(path) > 0 {
-			request, err := http.NewRequest(httpCmd, url + path, strings.NewReader(value))
+			request, err := http.NewRequest(httpCmd, url+path, strings.NewReader(value))
 			request.ContentLength = int64(len(value))
 			for key, value := range httpHeaders {
 				request.Header.Add(key, value)
 			}
 			response, err := client.Do(request)
-			if (err != nil) {
-				log.Fatal(err)
+			if err != nil {
+				log.Fatalf("Error on exectureQuery %+v", err)
 				return err
 			}
 			defer response.Body.Close()
 			contents, err := ioutil.ReadAll(response.Body)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("Error on exectureQuery %+v", err)
 				return err
 			} else {
-				log.Printf("Query: %s / response %s ", url + path, string(contents))
+				log.WithFields(log.Fields{
+					"query":    url + path,
+					"response": string(contents),
+				}).Debug("Execute query template")
 			}
 		}
 	}

@@ -1,7 +1,9 @@
 package docker
 
 import (
-	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types"
+	container "github.com/docker/docker/api/types/container"
+	swarm "github.com/docker/docker/api/types/swarm"
 	"github.com/docking-tools/register/api"
 	"strings"
 	"testing"
@@ -24,7 +26,7 @@ func TestServiceMetadataSSS(t *testing.T) {
 
 	config.Env[0] = "SERVICE.TEST=ok"
 
-	metadata, metaFromPort := serviceMetaData(&config, "8080")
+	metadata, metaFromPort := serviceMetaData("8080", envArrayToMap(config.Env), config.Labels)
 
 	t.Log("%v", metadata)
 	t.Log("%v", metaFromPort)
@@ -64,7 +66,7 @@ func TestGraphMetaData(t *testing.T) {
 	config.Env[0] = "test_cron=ok"
 	config.Env[1] = "sans_valeur"
 
-	result := graphMetaData(&config)
+	result := graphMetaData(envArrayToMap(config.Env), config.Labels)
 	t.Logf("%v", result)
 
 	if len(result) != 3 {
@@ -79,5 +81,43 @@ func TestGraphMetaData(t *testing.T) {
 	}
 	if result["cron"].(api.Recmap)["test"].(api.Recmap)["tutu"] != "ok" {
 		t.Fatal("cron.test.tutu not equals to ok", result["cron"].(api.Recmap)["test"])
+	}
+}
+
+func TestServiceSwarmPort(t *testing.T) {
+	container := types.ContainerJSON{
+		ContainerJSONBase: &types.ContainerJSONBase{
+			ID: "idddd",
+		},
+		Config: &container.Config{
+			Hostname: "rrr",
+		},
+	}
+
+	swarmService := swarm.Service{
+		Spec: swarm.ServiceSpec{
+			Annotations: swarm.Annotations{
+				Name: "serviceTest",
+			},
+		},
+	}
+
+	port := swarm.PortConfig{
+		TargetPort:    80,
+		PublishedPort: 8080,
+		PublishMode:   "tcp",
+	}
+
+	// call method
+	result := serviceSwarmPort(&container, &swarmService, port)
+
+	if result.HostPort != "8080" {
+		t.Fatal("Host port not equals to 8080")
+	}
+	if result.ExposedPort != "80" {
+		t.Fatal("Exposed port not equals to 80")
+	}
+	if result.PortType != "tcp" {
+		t.Fatal("Port type not equals to tcp")
 	}
 }
