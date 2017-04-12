@@ -145,6 +145,7 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 			MetaDataGraph: parseHierarchicalMetadata(doc.config, &container, status),
 			Container:     container, Status: status,
 		}
+		log.Printf("Object before template %+v", instance.Services)
 		go ep(status, instance, closeChan)
 	}
 	// getContainerList simulates creation event for all previously existing
