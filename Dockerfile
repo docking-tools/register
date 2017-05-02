@@ -6,4 +6,4 @@ COPY example/config.json  /root/.docking/config.json
 
 RUN chmod +x /register
 
-ENTRYPOINT ["/register"]
+CMD ["/register"]
