@@ -32,7 +32,7 @@ func TestNewWithGoodtemplate(t *testing.T) {
 	conf := config.ConfigTarget{
 		Templates: make(map[string][]*config.ConfigTemplate),
 	}
-	conf.Url = "http://localhost"
+	conf.UrlTemplate = "http://localhost"
 	templates := conf.Templates
 	template := config.ConfigTemplate{
 		Name:     "TEST",

@@ -38,7 +38,8 @@ type ConfigFile struct {
 }
 type ConfigTarget struct {
 	Name        string                       `json:"name"`
-	Url         string                       `json:"url"`
+	UrlTemplate string                       `json:"url"`
+	Url         string                       // Note: not serialized - for internal use only
 	HttpHeaders map[string]string            `json:"httpHeaders,omitpempty"`
 	Templates   map[string][]*ConfigTemplate `json:"templates"`
 }

@@ -31,7 +31,19 @@ var funcs = map[string]interface{}{
 
 func NewTemplate(config *config.ConfigTarget) (api.RegistryAdapter, error) {
 
-	_, err := url.ParseRequestURI(config.Url)
+	urlTemplate := template.Must(template.New(config.Name).Funcs(funcs).Parse(config.UrlTemplate))
+
+	bufQuery := &bytes.Buffer{}
+	// Execute the template with the object as the data item
+	bufQuery.Reset()
+
+	err := urlTemplate.Execute(bufQuery, nil)
+	if err != nil {
+		return nil, err
+	}
+	config.Url = bufQuery.String()
+
+	_, err = url.ParseRequestURI(config.Url)
 
 	if err != nil {
 		return nil, err
