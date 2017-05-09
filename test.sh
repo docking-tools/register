@@ -7,11 +7,6 @@ COVER=${COVER:-"-cover"}
 
 GO_BUILD_FLAGS=-a
 
-TEST=( ./**/*_test.go )
-
-
-echo ${TEST}
-
 echo "Running tests..."
 
 	MACHINE_TYPE=$(uname -m)

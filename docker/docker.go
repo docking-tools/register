@@ -91,11 +91,11 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 		}
 	}
 
-	parseService := func(config *config.ConfigFile, container *types.ContainerJSON, swarmService swarm.Service, status string) []*api.Service {
+	parseService := func(config *config.ConfigFile, container *types.ContainerJSON, swarmService *swarm.Service, status string) []*api.Service {
 
 		services := make([]*api.Service, 0)
 
-		services, err := createService(config, container, &swarmService)
+		services, err := createService(config.HostIp, container, swarmService)
 		if err != nil {
 			closeChan <- err
 		}
@@ -110,10 +110,14 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 
 	}
 
-	parseHierarchicalMetadata := func(container *types.ContainerJSON, swarmService swarm.Service, status string) api.Recmap {
+	parseHierarchicalMetadata := func(container *types.ContainerJSON, swarmService *swarm.Service, status string) api.Recmap {
 
 		graph := make(api.Recmap)
-		graph = graphMetaData(envArrayToMap(container.Config.Env), container.Config.Labels, swarmService.Spec.Labels)
+		if swarmService == nil {
+			graph = graphMetaData(envArrayToMap(container.Config.Env), container.Config.Labels)
+		} else {
+			graph = graphMetaData(envArrayToMap(container.Config.Env), container.Config.Labels, swarmService.Spec.Labels)
+		}
 		if data, ok := doc.graphMetaMap[container.ID]; ok && len(graph) == 0 {
 			graph = data
 			delete(doc.graphMetaMap, container.ID)
@@ -130,14 +134,14 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 			closeChan <- err
 			return
 		}
-		var swarmService swarm.Service
+		var swarmService *swarm.Service
 		if val, ok := container.Config.Labels["com.docker.swarm.service.id"]; ok {
 			serv, _, err := doc.docker.ServiceInspectWithRaw(context.Background(), val, types.ServiceInspectOptions{})
 			if err != nil {
 				closeChan <- err
 				return
 			}
-			swarmService = serv
+			swarmService = &serv
 		}
 
 		if status == "" {
@@ -150,7 +154,10 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 			Container:     container, Status: status,
 		}
 		log.WithFields(log.Fields{
-			"services": instance.Services,
+			"services":      &instance.Services,
+			"container":     &instance.Container,
+			"metadataGraph": &instance.MetaDataGraph,
+			"status":        instance.Status,
 		}).Debug("Object before template ")
 		go ep(status, instance, closeChan)
 	}
@@ -190,16 +197,14 @@ func (doc *DockerRegistry) Start(ep api.EventProcessor) {
 
 	for range time.Tick(500 * time.Millisecond) {
 		select {
-		case err, ok := <-closeChan:
-			if ok {
-				if err != nil {
-					// this is suppressing "unexpected EOF" in the cli when the
-					// daemon restarts so it shutdowns cleanly
-					log.Warnf("Error on run", err)
-					if err != io.ErrUnexpectedEOF {
-						closeChan <- err
-						close(closeChan)
-					}
+		case err := <-closeChan:
+			if err != nil {
+				// this is suppressing "unexpected EOF" in the cli when the
+				// daemon restarts so it shutdowns cleanly
+				log.Warnf("Error on run", err)
+				if err != io.ErrUnexpectedEOF {
+					closeChan <- err
+					close(closeChan)
 				}
 			}
 		default:
