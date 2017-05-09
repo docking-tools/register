@@ -3,7 +3,9 @@ package docker
 import (
 	"github.com/docker/docker/api/types"
 	container "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	swarm "github.com/docker/docker/api/types/swarm"
+	"github.com/docker/go-connections/nat"
 	"github.com/docking-tools/register/api"
 	"strings"
 	"testing"
@@ -110,6 +112,40 @@ func TestServiceSwarmPort(t *testing.T) {
 
 	// call method
 	result := serviceSwarmPort(&container, &swarmService, port)
+
+	if result.HostPort != "8080" {
+		t.Fatal("Host port not equals to 8080")
+	}
+	if result.ExposedPort != "80" {
+		t.Fatal("Exposed port not equals to 80")
+	}
+	if result.PortType != "tcp" {
+		t.Fatal("Port type not equals to tcp")
+	}
+}
+
+func TestServicePort(t *testing.T) {
+	container := types.ContainerJSON{
+		ContainerJSONBase: &types.ContainerJSONBase{
+			ID: "idddd",
+		},
+		Config: &container.Config{
+			Hostname: "rrr",
+		},
+		NetworkSettings: &types.NetworkSettings{
+			Networks: make(map[string]*network.EndpointSettings),
+		},
+	}
+	port, _ := nat.NewPort("tcp", "80")
+
+	published := nat.PortBinding{
+		HostPort: "8080",
+		HostIP:   "11111",
+	}
+	publisheds := []nat.PortBinding{published}
+
+	// call method
+	result := servicePort(&container, port, publisheds)
 
 	if result.HostPort != "8080" {
 		t.Fatal("Host port not equals to 8080")

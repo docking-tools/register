@@ -59,7 +59,7 @@ func TestExecuteTemplate(t *testing.T) {
 	template := config.ConfigTemplate{
 		Name:     "TEST",
 		HttpCmd:  "et",
-		Template: "/my/query/{{.ID}} data exemple {{.Name}} {{.SwarmMode}}",
+		Template: "/my/query/{{.ID}} data exemple {{.Name}} {{.SwarmMode}}\n",
 	}
 	templates["ALL"] = append(templates["ALL"], &template)
 	parseTemplates(templates)
@@ -126,7 +126,7 @@ func TestStructMultiQuery(t *testing.T) {
 	log.Printf("Esxecuted template: %v ", query)
 	assert.Nil(t, err)
 	assert.NotNil(t, query)
-	assert.Equal(t, "/v1/kv/services/attr1 value1\n/v1/kv/services/attr2 value2\n", query)
+	assert.Equal(t, "/v1/kv/services/attr1 value1\n/v1/kv/services/attr2 value2", query)
 
 }
 

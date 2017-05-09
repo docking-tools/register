@@ -5,12 +5,11 @@ import (
 	"github.com/docker/docker/api/types"
 	swarm "github.com/docker/docker/api/types/swarm"
 	api "github.com/docking-tools/register/api"
-	"github.com/docking-tools/register/config"
 	"net"
 	"strconv"
 )
 
-func createService(config *config.ConfigFile, container *types.ContainerJSON, swarmService *swarm.Service) ([]*api.Service, error) {
+func createService(defaultIP string, container *types.ContainerJSON, swarmService *swarm.Service) ([]*api.Service, error) {
 
 	ports := make(map[string]DockerServicePort)
 	isSwarmMode := false
@@ -22,19 +21,28 @@ func createService(config *config.ConfigFile, container *types.ContainerJSON, sw
 				ports[string(port)] = servicePort(container, port, published)
 			}
 
+		} else {
+			log.WithFields(log.Fields{
+				"NetworkSettings": &container.NetworkSettings,
+			}).Info("No port found for container")
 		}
 	} else {
 		isSwarmMode = true
 		// For swarm mode container
+		if len(swarmService.Endpoint.Ports) == 0 {
+			log.WithFields(log.Fields{
+				"SwarmService": &swarmService,
+				"Endpoint":     &swarmService.Endpoint,
+			}).Info("No port found for container")
+		}
 		for _, port := range swarmService.Endpoint.Ports {
 			ports[string(port.TargetPort)] = serviceSwarmPort(container, swarmService, port)
 		}
 
 	}
 	services := make([]*api.Service, 0)
-
 	for _, port := range ports {
-		service := newService(config, swarmService, port, len(ports) > 1, isSwarmMode)
+		service := newService(defaultIP, swarmService, port, len(ports) > 1, isSwarmMode)
 		if service == nil {
 			log.WithFields(log.Fields{
 				"containerID": port.ContainerID,
@@ -55,18 +63,16 @@ func createService(config *config.ConfigFile, container *types.ContainerJSON, sw
 	return services, nil
 }
 
-func newService(config *config.ConfigFile, swarmService *swarm.Service, port DockerServicePort, isgroup bool, isSwarmMode bool) *api.Service {
+func newService(defaultIP string, swarmService *swarm.Service, port DockerServicePort, isgroup bool, isSwarmMode bool) *api.Service {
 	log.WithFields(log.Fields{
 		"containerID": port.ContainerID,
 		"name":        port.ServiceName,
 		"isGroup":     isgroup,
 	}).Debug("serviceSwarmPort servicePort")
 
-	container := port.container
-
 	// not sure about this logic. kind of want to remove it.
-	if config.HostIp != "" {
-		port.HostIP = config.HostIp
+	if defaultIP != "" {
+		port.HostIP = defaultIP
 	}
 
 	hostname := Hostname
@@ -79,8 +85,14 @@ func newService(config *config.ConfigFile, swarmService *swarm.Service, port Doc
 			port.HostIP = ip.String()
 		}
 	}
-
-	metadata, metadataFromPort := serviceMetaData(port.ExposedPort, envArrayToMap(container.Config.Env), container.Config.Labels, swarmService.Spec.Labels)
+	var metadata map[string]string
+	var metadataFromPort map[string]bool
+	container := port.container
+	if swarmService == nil {
+		metadata, metadataFromPort = serviceMetaData(port.ExposedPort, envArrayToMap(container.Config.Env), container.Config.Labels)
+	} else {
+		metadata, metadataFromPort = serviceMetaData(port.ExposedPort, envArrayToMap(container.Config.Env), container.Config.Labels, swarmService.Spec.Labels)
+	}
 
 	ignore := mapDefault(metadata, "ignore", "")
 	if ignore != "" {

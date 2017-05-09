@@ -112,9 +112,11 @@ func (r *TemplateRegistry) RunTemplate(status string, object interface{}) error 
 		if err != nil {
 			return err
 		}
-		err = exectureQuery(r.target.Url, query, tmpl.HttpCmd, headers)
-		if err != nil {
-			return err
+		if len(query) != 0 {
+			err = exectureQuery(r.target.Url, query, tmpl.HttpCmd, headers)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -131,7 +133,7 @@ func executeTemplates(conf *config.ConfigTemplate, object interface{}) (string, 
 		return "", err
 	}
 
-	return bufQuery.String(), nil
+	return strings.TrimSuffix(bufQuery.String(), "\n"), nil
 }
 
 func executeHttpHeaders(data map[string]*template.Template, object interface{}) (map[string]string, error) {
@@ -162,9 +164,11 @@ func exectureQuery(url string, tmpl string, httpCmd string, httpHeaders map[stri
 			value = queryTab[1]
 		}
 		log.WithFields(log.Fields{
-			"query":    url + path,
-			"response": queryTab,
-		}).Debug("Execute query template")
+			"httpCmd": httpCmd,
+			"url":     url,
+			"path":    path,
+			"data":    queryTab,
+		}).Debug("Parse query template")
 		if len(path) > 0 {
 			request, err := http.NewRequest(httpCmd, url+path, strings.NewReader(value))
 			request.ContentLength = int64(len(value))
@@ -187,6 +191,10 @@ func exectureQuery(url string, tmpl string, httpCmd string, httpHeaders map[stri
 					"response": string(contents),
 				}).Debug("Execute query template")
 			}
+		} else {
+			log.WithFields(log.Fields{
+				"tmpl": tmpl,
+			}).Debug("No data for query")
 		}
 	}
 	return nil
