@@ -29,16 +29,22 @@ func main() {
 		// @TODO create Usage helper
 		flag.PrintDefaults()
 	}
+	showVersion := true
 
 	configFile, e := config.Load("")
 
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "WARNING: Error loading config file:%v\n", e)
 	}
-
+	flag.BoolVar(&showVersion, "version", false, "Print version information and quit")
 	flag.StringVar(&configFile.HostIp, "ip", configFile.HostIp, "Ip for ports mapped to the host (shorthand)")
 
 	flag.Parse()
+
+	if showVersion {
+		fmt.Printf("Register version %s, build %s\n", Version, GitCommit)
+		return
+	}
 
 	log.WithFields(log.Fields{
 		"NumberOfTarget": len(configFile.Targets),

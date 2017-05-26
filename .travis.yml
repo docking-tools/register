@@ -6,7 +6,8 @@ before_script:
   - go get github.com/stretchr/testify/assert
 script:
   - go test -v -cover $(glide novendor)
-  - CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go install
+  - VERSION=$TRAVIS_TAG GITCOMMIT=$TRAVIS_COMMIT BUILDTIME=$(date) ./go-autogen
+  - CGO_ENABLED=1 GOOS=linux GOARCH=amd64  go install -tags "autogen"
   - chmod +x $GOPATH/bin/register
 install:
   - wget "https://github.com/Masterminds/glide/releases/download/0.10.2/glide-0.10.2-linux-amd64.tar.gz"

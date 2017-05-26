@@ -1,3 +1,4 @@
 register
 vendor
 .idea
+version_autogen.go
