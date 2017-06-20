@@ -18,7 +18,9 @@ func createService(defaultIP string, container *types.ContainerJSON, swarmServic
 		if container.NetworkSettings != nil && len(container.NetworkSettings.Ports) > 0 {
 			// Extract runtime port mappings, relevant when using --net=bridge
 			for port, published := range container.NetworkSettings.Ports {
-				ports[string(port)] = servicePort(container, port, published)
+				if len(published) > 0 {
+					ports[string(port)] = servicePort(container, port, published)
+				}
 			}
 
 		} else {

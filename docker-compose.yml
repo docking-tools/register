@@ -1,7 +1,7 @@
 version: "2"
 services:
   register:
-    image: 'dockingtools/register:0.0.7'
+    image: 'dockingtools/register:0.0.10'
     build: .
     links:
       - registry
