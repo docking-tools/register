@@ -1,0 +1,17 @@
+# To be made on /lib/systemd/system.register.service
+[Unit]
+Description=Manage docker discovering
+After=docker.service
+
+[Service]
+EnvironmentFile=-/etc/environment
+Environment=DOCKING_CONFIG=/usr/share/register
+Restart=always
+ExecStart=/usr/bin/register -ip=${EXPOSED_IP}
+Restart=on-failure
+
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+
+[Install]
+WantedBy=default.target
